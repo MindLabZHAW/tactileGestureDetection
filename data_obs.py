@@ -60,20 +60,23 @@ def save_data_to_csv(data,attribute_name):
     filepath = os.path.join(data_dir,attribute_name + '.csv')
     with open(filepath,mode = 'w') as file:
         writer = csv.writer(file)
-        writer.writerows(value)
+        if isinstance(value,(tuple,list)):
+            writer.writerow(value)
+        else:
+            writer.writerows([value])
 
 def print_robot_state(data):
     # rospy.loginfo(np.array(data.q_d) - np.array(data.q))
     # rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.q)
-    print(f"the type of dq is {type(data.dq)}")
-    print(f"the type of elbow is {type(data.elbow)}")
-    '''
+    # print(f"the type of dq is {type(data.dq)}")
+    # print(f"the type of elbow is {type(data.elbow)}")
+    
     attributes = ["elbow"]
     for attribute_name in attributes:
         if hasattr(data,attribute_name):
             print(getattr(data,attribute_name))
             save_data_to_csv(data,attribute_name)
-     '''
+    
 
 
 if __name__ == '__main__':
