@@ -49,8 +49,9 @@ import os
 
 
 # CREATE FOLDER FOR KEEP DATA
-data_dir = "data"
-print(os.path)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+data_dir = os.path.join(script_dir ,"data")
+#print(os.path)
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
