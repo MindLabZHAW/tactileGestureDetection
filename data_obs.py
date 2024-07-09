@@ -50,6 +50,7 @@ import os
 
 # CREATE FOLDER FOR KEEP DATA
 data_dir = "data"
+print(os.path)
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
