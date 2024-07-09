@@ -51,37 +51,48 @@ import os
 # CREATE FOLDER FOR KEEP DATA
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir ,"data")
-#print(os.path)
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
-# Save data to csv file
+start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+csv_file_path = os.path.join(data_dir,start_timestamp + ".csv")
 
-def save_data_to_csv(data,attribute_name):
-    value = getattr(data,attribute_name)
-    filepath = os.path.join(data_dir,attribute_name + '.csv')
-    with open(filepath,mode = 'w') as file:
+def initialize_csv():
+    headers = ["timestamp","attribute_name","values"]
+    with open(csv_file_path,mode = "w",newline = "") as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+
+# Save data to csv file
+def save_data_to_csv(attribute_name,value,timestamp):
+    with open(csv_file_path,mode = 'a',newline="") as file:
         writer = csv.writer(file)
         if isinstance(value,(tuple,list)):
-            writer.writerow(value)
+            writer.writerow([timestamp,attribute_name]+ list(value))
         else:
-            writer.writerows([value])
+            writer.writerow([timestamp,attribute_name,value])
 
 def print_robot_state(data):
     # rospy.loginfo(np.array(data.q_d) - np.array(data.q))
     # rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.q)
     # print(f"the type of dq is {type(data.dq)}")
     # print(f"the type of elbow is {type(data.elbow)}")
-    
-    attributes = ["elbow"]
+    attributes = ["elbow","O_T_EE","tau_J_d","q","q_d","dq","tau_J","dtau_J","gravity","coriolis","O_F_ext_hat_K","m_ee","IA","tau_ext_hat_filtered", "joint_contact", "artesian_contact", "joint_collision","cartesian_collision"]
+    timestamp = datetime.datetime.now().isoformat()
+    data_entry = {}
+
     for attribute_name in attributes:
         if hasattr(data,attribute_name):
-            print(getattr(data,attribute_name))
-            save_data_to_csv(data,attribute_name)
+            value = getattr(data,attribute_name)
+            data_entry[attribute_name] = value
+            save_data_to_csv(attribute_name,value,timestamp)
     
+
+    print(f"{timestamp} : {data_entry}")
 
 
 if __name__ == '__main__':
+    initialize_csv()
     # create FrankaArm instance
     fa = FrankaArm()
 
