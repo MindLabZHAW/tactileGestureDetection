@@ -79,7 +79,7 @@ def main():
             # 获取当前机器人状态
             robot_state = fa.get_robot_state()
 
-            
+
             # 打印一些关节信息作为示例
             print("关节位置: ", robot_state.q)
             print("关节速度: ", robot_state.dq)
@@ -97,5 +97,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-    fa.stop_skill()
+  
 

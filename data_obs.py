@@ -30,7 +30,6 @@ open another terminal
     $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/test.py
 '''
 
-import os
 import numpy as np
 import pandas as pd
 import time
@@ -48,11 +47,32 @@ import csv
 import datetime
 import os
 
+
+# CREATE FOLDER FOR KEEP DATA
+data_dir = "data"
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+
+# Save data to csv file
+
+def save_data_to_csv(data,attribute_name):
+    value = getattr(data,attribute_name)
+    filepath = os.path.join(data_dir,attribute_name + '.csv')
+    with open(filepath,mode = 'w') as file:
+        writer = csv.writer(file)
+        writer.writerows(value)
+
 def print_robot_state(data):
     # rospy.loginfo(np.array(data.q_d) - np.array(data.q))
     # rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.q)
     # print(data.dq)
-    print(data.elbow)
+    attributes = ["elbow"]
+    for attribute_name in attributes:
+        if hasattr(data,attribute_name):
+            print(getattr(data,attribute_name))
+            save_data_to_csv(data,attribute_name)
+
+
 
 if __name__ == '__main__':
     # create FrankaArm instance
