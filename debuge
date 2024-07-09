@@ -1,0 +1,15 @@
+^C(0.11594476531343717, -1.0)
+[ERROR] [1720536550.956202]: bad callback: <function print_robot_state at 0x7fd757c42e50>
+Traceback (most recent call last):
+  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/topics.py", line 750, in _invoke_callback
+    cb(msg)
+  File "/home/nanjo/tactileGestureDetection/data_obs.py", line 73, in print_robot_state
+    save_data_to_csv(data,attribute_name)
+  File "/home/nanjo/tactileGestureDetection/data_obs.py", line 63, in save_data_to_csv
+    writer.writerows(value)
+_csv.Error: iterable expected, not float
+
+
+
+^Cthe type of dq is <class 'tuple'>
+the type of elbow is <class 'tuple'>
