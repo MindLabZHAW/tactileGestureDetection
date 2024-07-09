@@ -35,20 +35,51 @@ open another terminal
 # to chage publish rate of frankastate go to : 
 sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros_interface.launch
 """
-
+## import required libraries 
+import os
+import numpy as np
+import pandas as pd
 import time
+
+import torch
+from torchvision import transforms
+
+import rospy
+from std_msgs.msg import Float64
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
 from frankapy import FrankaArm
+from franka_interface_msgs.msg import RobotState
+from threading import Thread
+from threading import Event
+
+
+
+def contact_detection(data):
+    e_q = np.array(data.q_d) - np.array(data.q)
+    e_dq = np.array(data.dq_d ) - np.array(data.dq)
+
+    print(f"Position Error: {e_q}")
+
+    print(f"Velocity Error: {e_dq}")
 
 def main():
+    # Initialize the ROS node
+    rospy.init_node('robot_state_node', anonymous=True)
+
     # 创建FrankaArm实例
     fa = FrankaArm()
 
     try:
-        # 不断获取机器人状态
-        while True:
+         # subscribe robot data topic for contact detection module
+         rospy.Subscriber(name= "/robot_state_publisher_node_1/robot_state",data_class= RobotState, callback =contact_detection)#, callback_args=update_state)#,queue_size = 1)
+         model_pub = rospy.Publisher("/model_output", numpy_msg(Floats), queue_size= 1)
+         # 不断获取机器人状态
+         while not rospy.is_shutdown():
             # 获取当前机器人状态
             robot_state = fa.get_robot_state()
 
+            
             # 打印一些关节信息作为示例
             print("关节位置: ", robot_state.q)
             print("关节速度: ", robot_state.dq)
@@ -58,9 +89,11 @@ def main():
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("停止机器人状态获取")
+    
     finally:
         # 关闭机器人连接
         fa.stop_skill()
+        rospy.signal_shutdown("Shutting down")
 
 if __name__ == '__main__':
     main()
