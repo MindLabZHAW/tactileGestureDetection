@@ -49,12 +49,14 @@ import datetime
 import os
 import subprocess
 
+import visualization
+
 
 # Global constant for attributes
 ATTRIBUTES = [
-    "elbow", "O_T_EE", "tau_J_d", "q", "q_d", "dq", "tau_J", "dtau_J", "gravity", 
-    "coriolis", "O_F_ext_hat_K", "m_ee", "IA", "tau_ext_hat_filtered", "joint_contact", 
-    "artesian_contact", "joint_collision", "cartesian_collision"
+    "elbow", "O_T_EE", "tau_J_d", "q", "q_d", "dq", "tau_J", "dtau_J", "gravity", "ddq_d","delbow_c","elbow_c","elbow_d","F_T_EE","O_ddP_EE_c","O_dP_EE_d","O_T_EE","O_T_EE_c"
+    "coriolis", "O_F_ext_hat_K", "m_ee", "IA", "tau_ext_hat_filtered", "joint_contact", "dq_d"," dtheta","EE_T_K","F_T_NE","K_F_ext_hat_K","O_dP_EE_c","O_F_ext_hat_K",
+    "cartesian_contact", "joint_collision", "cartesian_collision","theta","control_command_success_rate","ddelbow_c","NE_T_EE","O_T_EE_d"
 ]
 
 # CREATE FOLDER FOR KEEP DATA
@@ -68,6 +70,11 @@ subfolder_name = input("Enter the subfolder name: ")
 subfolder_path = os.path.join(data_dir,subfolder_name)
 if not os.path.exists(subfolder_path):
     os.makedirs(subfolder_path)
+
+# create the "plot" subfolder
+plot_folder_path = os.path.join(subfolder_path, "plot")
+if not os.path.exists(plot_folder_path):
+    os.makedirs(plot_folder_path)
 
 # create the name of csv file
 start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -93,12 +100,20 @@ def save_data_to_json(attribute_name, value, timestamp):
         json.dump(data, file, indent=4)
 
 # Initialize individual csv files
+# def initialize_csv(attribute_name):
+#     csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
+#     headers = ["timestamp", "values"]
+#     with open(csv_file_path, mode="w", newline="") as file:
+#         writer = csv.writer(file)
+#         writer.writerow(headers)
 def initialize_csv(attribute_name):
     csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
-    headers = ["timestamp", "values"]
+    headers = ["timestamp"] + [f"col{i}" for i in range(1, len(ATTRIBUTES)+1)]
     with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(headers)
+
+
 
 # Save data to csv file
 def save_data_to_csv(attribute_name,value,timestamp):
@@ -138,6 +153,10 @@ if __name__ == '__main__':
     rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1)
     rospy.spin()
 
-    # call visualization script
-    #subprocess.run(["python","visualization.py",csv_file_path])
+# # Generate plots after data collection
+#     print("yunxingtdaoyhehangle+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+#     for attribute in ATTRIBUTES:
+#         csv_file_path = os.path.join(subfolder_path, f"{attribute}.csv")
+#         plot_file_path = os.path.join(plot_folder_path, f"{attribute}.png")
+#         visualization.generate_plot(csv_file_path, plot_file_path)
 
