@@ -54,9 +54,17 @@ data_dir = os.path.join(script_dir ,"data")
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
-start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-csv_file_path = os.path.join(data_dir,start_timestamp + ".csv")
+# Create subfolder
+subfolder_name = input("Enter the subfolder name: ")
+subfolder_path = os.path.join(data_dir,subfolder_name)
+if not os.path.exists(subfolder_path):
+    os.makedirs(subfolder_path)
 
+# create the name of csv file
+start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+csv_file_path = os.path.join(subfolder_path,start_timestamp + ".csv")
+
+# initialize csv file
 def initialize_csv():
     headers = ["timestamp","attribute_name","values"]
     with open(csv_file_path,mode = "w",newline = "") as file:
