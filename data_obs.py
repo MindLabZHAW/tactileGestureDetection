@@ -106,3 +106,5 @@ if __name__ == '__main__':
 
     rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1)
     rospy.spin()
+
+    
