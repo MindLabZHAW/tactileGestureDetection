@@ -33,6 +33,7 @@ open another terminal
 import numpy as np
 import pandas as pd
 import time
+import json
 
 import rospy
 from std_msgs.msg import Float64
@@ -46,7 +47,15 @@ from threading import Event
 import csv
 import datetime
 import os
+import subprocess
 
+
+# Global constant for attributes
+ATTRIBUTES = [
+    "elbow", "O_T_EE", "tau_J_d", "q", "q_d", "dq", "tau_J", "dtau_J", "gravity", 
+    "coriolis", "O_F_ext_hat_K", "m_ee", "IA", "tau_ext_hat_filtered", "joint_contact", 
+    "artesian_contact", "joint_collision", "cartesian_collision"
+]
 
 # CREATE FOLDER FOR KEEP DATA
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -62,49 +71,73 @@ if not os.path.exists(subfolder_path):
 
 # create the name of csv file
 start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-csv_file_path = os.path.join(subfolder_path,start_timestamp + ".csv")
+json_file_path = os.path.join(subfolder_path, start_timestamp + "_all_attributes.json")
 
-# initialize csv file
-def initialize_csv():
-    headers = ["timestamp","attribute_name","values"]
-    with open(csv_file_path,mode = "w",newline = "") as file:
+# initialize json file
+def initialize_json():
+    with open(json_file_path, mode="w") as file:
+        json.dump([], file)
+
+# Save data to json file
+def save_data_to_json(attribute_name, value, timestamp):
+    data_entry = {
+        "timestamp": timestamp,
+        "attribute_name": attribute_name,
+        "values": value
+    }
+    
+    with open(json_file_path, mode='r+') as file:
+        data = json.load(file)
+        data.append(data_entry)
+        file.seek(0)
+        json.dump(data, file, indent=4)
+
+# Initialize individual csv files
+def initialize_csv(attribute_name):
+    csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
+    headers = ["timestamp", "values"]
+    with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
 # Save data to csv file
 def save_data_to_csv(attribute_name,value,timestamp):
-    with open(csv_file_path,mode = 'a',newline="") as file:
+    csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
+    
+    with open(csv_file_path, mode='a', newline="") as file:
         writer = csv.writer(file)
-        if isinstance(value,(tuple,list)):
-            writer.writerow([timestamp,attribute_name]+ list(value))
+        if isinstance(value, (tuple, list)):
+            row = [timestamp] + list(value)
         else:
-            writer.writerow([timestamp,attribute_name,value])
+            row = [timestamp, value]
+        writer.writerow(row)
+    
 
 def print_robot_state(data):
-    # rospy.loginfo(np.array(data.q_d) - np.array(data.q))
-    # rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.q)
-    # print(f"the type of dq is {type(data.dq)}")
-    # print(f"the type of elbow is {type(data.elbow)}")
-    attributes = ["elbow","O_T_EE","tau_J_d","q","q_d","dq","tau_J","dtau_J","gravity","coriolis","O_F_ext_hat_K","m_ee","IA","tau_ext_hat_filtered", "joint_contact", "artesian_contact", "joint_collision","cartesian_collision"]
     timestamp = datetime.datetime.now().isoformat()
     data_entry = {}
 
-    for attribute_name in attributes:
+    for attribute_name in ATTRIBUTES:
         if hasattr(data,attribute_name):
             value = getattr(data,attribute_name)
             data_entry[attribute_name] = value
-            save_data_to_csv(attribute_name,value,timestamp)
+            save_data_to_json(attribute_name, value, timestamp)
+            save_data_to_csv(attribute_name, value, timestamp)
     
 
     print(f"{timestamp} : {data_entry}")
 
 
 if __name__ == '__main__':
-    initialize_csv()
+    initialize_json()
+    for attribute in ATTRIBUTES:
+        initialize_csv(attribute)
     # create FrankaArm instance
     fa = FrankaArm()
 
     rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1)
     rospy.spin()
 
-    
+    # call visualization script
+    #subprocess.run(["python","visualization.py",csv_file_path])
+
