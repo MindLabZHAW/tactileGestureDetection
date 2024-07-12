@@ -57,29 +57,29 @@ def plot_attribute(csv_file_path, plot_file_path, attributes, num_columns):
                     print(f"Plot saved to {plot_file}")
                 except Exception as e:
                     print(f"Error plotting {csv_file}: {e}")
+def plot_2d_attribute(csv_file_path, plot_file_path):
+    attributes_2 = ["elbow", "	elbow_d", "elbow_c", "delbow_c", "ddelbow_c"]
+    plot_attribute(csv_file_path, plot_file_path, attributes_2, 2)
+
 
 def plot_3d_attribute(csv_file_path, plot_file_path):
-    attributes_3 = ["cartesian_contact", "cartesian_collision", "O_F_ext_hat_K ", "K_F_ext_hat_K", "O_dP_EE_d", "O_dP_EE_c", "O_ddP_EE_c "]
+    attributes_3 = ["F_x_Cee", "F_x_Cload", "F_x_Ctotal"]
     plot_attribute(csv_file_path, plot_file_path, attributes_3, 3)
-
-
-def plot_9d_attribute(csv_file_path, plot_file_path):
-    attributes_9 = ["q", "q_d", "tau_ext_hat_filtered", "tau_J", "tau_J_d", "theta", "dtheta"]
-    plot_attribute(csv_file_path, plot_file_path, attributes_9, 9)
-
-def plot_2d_attribute(csv_file_path, plot_file_path):
-    attributes_2 = ["O_T_EE", "O_T_EE_d", "F_T_EE", "F_T_NE", "NE_T_EE", "EE_T_K", "O_T_EE_c"]
-    plot_attribute(csv_file_path, plot_file_path, attributes_2, 2)
 
 
 def plot_6d_attribute(csv_file_path, plot_file_path):
     attributes_6 = ["cartesian_contact", "cartesian_collision", "O_F_ext_hat_K ", "K_F_ext_hat_K", "O_dP_EE_d", "O_dP_EE_c", "O_ddP_EE_c "]
     plot_attribute(csv_file_path, plot_file_path, attributes_6, 6)
 
-
 def plot_7d_attribute(csv_file_path, plot_file_path):
-    attributes_7 = ["q", "q_d", "tau_ext_hat_filtered", "tau_J", "tau_J_d", "theta", "dtheta"]
+    attributes_7 = ["q", "q_d", "tau_ext_hat_filtered","joint_collision","tau_J", "tau_J_d", "theta", "dtheta","dtau_J","dq","dq_d","ddq_d","joint_contact"]
     plot_attribute(csv_file_path, plot_file_path, attributes_7, 7)
+   
+
+def plot_9d_attribute(csv_file_path, plot_file_path):
+    attributes_9 = ["I_ee", "I_load", "I_total"]
+    plot_attribute(csv_file_path, plot_file_path, attributes_9, 9)
+
 
 def plot_16d_attribute(csv_file_path, plot_file_path):
     attributes_16 = ["O_T_EE", "O_T_EE_d", "F_T_EE", "F_T_NE", "NE_T_EE", "EE_T_K", "O_T_EE_c"]
@@ -90,6 +90,9 @@ def plot_16d_attribute(csv_file_path, plot_file_path):
 if __name__ == '__main__':
     csv_file_path = "data/0712"
     plot_file_path = "data/0712/plot"
+    plot_2d_attribute(csv_file_path, plot_file_path)
+    plot_3d_attribute(csv_file_path, plot_file_path)
     plot_7d_attribute(csv_file_path, plot_file_path)
     plot_6d_attribute(csv_file_path, plot_file_path)
+    plot_9d_attribute(csv_file_path, plot_file_path)
     plot_16d_attribute(csv_file_path, plot_file_path)
