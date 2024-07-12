@@ -140,6 +140,7 @@ def print_robot_state(data):
             save_data_to_csv(attribute_name, value, timestamp)
 
             print(f"{timestamp} : {data_entry}")
+            # print(data.q)
 
 
 if __name__ == '__main__':

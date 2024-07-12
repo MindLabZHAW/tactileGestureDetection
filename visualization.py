@@ -68,7 +68,7 @@ def plot_3d_attribute(csv_file_path, plot_file_path):
 
 
 def plot_6d_attribute(csv_file_path, plot_file_path):
-    attributes_6 = ["cartesian_contact", "cartesian_collision", "O_F_ext_hat_K ", "K_F_ext_hat_K", "O_dP_EE_d", "O_dP_EE_c", "O_ddP_EE_c "]
+    attributes_6 = ["cartesian_contact", "cartesian_collision", "O_F_ext_hat_K", "K_F_ext_hat_K", "O_dP_EE_d", "O_dP_EE_c", "O_ddP_EE_c"]
     plot_attribute(csv_file_path, plot_file_path, attributes_6, 6)
 
 def plot_7d_attribute(csv_file_path, plot_file_path):
@@ -88,8 +88,8 @@ def plot_16d_attribute(csv_file_path, plot_file_path):
 
 # Example usage:
 if __name__ == '__main__':
-    csv_file_path = "data/without_glove"
-    plot_file_path = "data/without_glove/plot"
+    csv_file_path = "data/0712-70G-1"
+    plot_file_path = "data/0712-70G-1/plot"
     plot_2d_attribute(csv_file_path, plot_file_path)
     plot_3d_attribute(csv_file_path, plot_file_path)
     plot_7d_attribute(csv_file_path, plot_file_path)
