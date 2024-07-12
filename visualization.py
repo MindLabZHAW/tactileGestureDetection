@@ -88,8 +88,8 @@ def plot_16d_attribute(csv_file_path, plot_file_path):
 
 # Example usage:
 if __name__ == '__main__':
-    csv_file_path = "data/0712"
-    plot_file_path = "data/0712/plot"
+    csv_file_path = "data/without_glove"
+    plot_file_path = "data/without_glove/plot"
     plot_2d_attribute(csv_file_path, plot_file_path)
     plot_3d_attribute(csv_file_path, plot_file_path)
     plot_7d_attribute(csv_file_path, plot_file_path)
