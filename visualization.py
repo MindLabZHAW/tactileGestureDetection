@@ -7,7 +7,7 @@ def plot_7d_attribute(csv_file_path, plot_file_path):
     if not os.path.exists(plot_file_path):
         os.makedirs(plot_file_path)
 
-    # Attributes to plot (7 attributes)
+    # Attributes to plot (with 7 dimentions)
     attributes = [
         "q", "q_d", "tau_ext_hat_filtered", "tau_J", "tau_J_d", "theta", "dtheta"
     ]
@@ -24,22 +24,17 @@ def plot_7d_attribute(csv_file_path, plot_file_path):
                 plot_file = os.path.join(plot_file_path, os.path.splitext(filename)[0] + ".png")
 
                 try:
-                    # Read CSV file with header=None to handle files without full headers
-                    df = pd.read_csv(csv_file, sep=",",header=None)
-
-                    # Manually set column names for timestamp and attributes
-                   # df.columns = ['timestamp',"1","2","3","4","5","6","7"] 
+                    # Read CSV file to handle files 
+                    df = pd.read_csv(csv_file, sep=",")
+                    #print(df.head())
 
                     # Print the number of columns in the CSV file
-                    print(f"File: {filename}, Number of columns: {len(df.columns)}")
+                   # print(f"File: {filename}, Number of columns: {len(df.columns)}")
 
-                    # Check if required columns exist
-                    if 'timestamp' not in df.columns or len(df.columns) < 8:
-                        raise ValueError("CSV file does not contain the required columns")
 
                     # Extract timestamp and values for each column
-                    #timestamp = pd.to_datetime(df['timestamp'])
-                    timestamp = pd.to_datetime(df[0])
+                    timestamp = pd.to_datetime(df["timestamp"])
+                    #print(f"timestamp is {timestamp}")
                     columns_to_plot = df.columns[1:8]  # Adjust indices based on actual CSV structure
 
                     # Plotting
@@ -64,6 +59,6 @@ def plot_7d_attribute(csv_file_path, plot_file_path):
 
 # Example usage:
 if __name__ == '__main__':
-    csv_folder_path = "data/0711"
-    plot_folder_path = "data/0711/plot"
+    csv_folder_path = "data/0712"
+    plot_folder_path = "data/0712/plot"
     plot_7d_attribute(csv_folder_path, plot_folder_path)
