@@ -138,9 +138,8 @@ def print_robot_state(data):
             data_entry[attribute_name] = value
             save_data_to_json(attribute_name, value, timestamp)
             save_data_to_csv(attribute_name, value, timestamp)
-    
 
-    print(f"{timestamp} : {data_entry}")
+            print(f"{timestamp} : {data_entry}")
 
 
 if __name__ == '__main__':
@@ -153,10 +152,4 @@ if __name__ == '__main__':
     rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1)
     rospy.spin()
 
-# # Generate plots after data collection
-#     print("yunxingtdaoyhehangle+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-#     for attribute in ATTRIBUTES:
-#         csv_file_path = os.path.join(subfolder_path, f"{attribute}.csv")
-#         plot_file_path = os.path.join(plot_folder_path, f"{attribute}.png")
-#         visualization.generate_plot(csv_file_path, plot_file_path)
 
