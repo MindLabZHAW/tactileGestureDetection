@@ -27,7 +27,7 @@ open another terminal
 	
 	$HOME/miniconda/envs/frankapyenv/bin/python3 frankaRobot/main.py
 
-    $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/test.py
+    $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/data_obs.py
 '''
 
 import numpy as np
