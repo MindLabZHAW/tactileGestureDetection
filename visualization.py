@@ -23,6 +23,11 @@ def plot_7d_attribute(csv_file_path, plot_file_path):
                 csv_file = os.path.join(csv_file_path, filename)
                 plot_file = os.path.join(plot_file_path, os.path.splitext(filename)[0] + ".png")
 
+                #check if the plot file exists and delete it if it does
+                if os.path.exists(plot_file):
+                    os.remove(plot_file)
+                    print(f"Existing plot {plot_file} deleted.")
+
                 try:
                     # Read CSV file to handle files 
                     df = pd.read_csv(csv_file, sep=",")
