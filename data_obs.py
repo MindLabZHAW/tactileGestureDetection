@@ -53,21 +53,32 @@ import visualization
 
 
 # Global constant for attributes
-ATTRIBUTES = [
-    "elbow", "O_T_EE", "tau_J_d", "q", "q_d", "dq", "tau_J", "dtau_J", "gravity", "ddq_d","delbow_c","elbow_c","elbow_d","F_T_EE","O_ddP_EE_c","O_dP_EE_d","O_T_EE","O_T_EE_c"
-    "coriolis", "O_F_ext_hat_K", "m_ee", "IA", "tau_ext_hat_filtered", "joint_contact", "dq_d"," dtheta","EE_T_K","F_T_NE","K_F_ext_hat_K","O_dP_EE_c","O_F_ext_hat_K",
-    "cartesian_contact", "joint_collision", "cartesian_collision","theta","control_command_success_rate","ddelbow_c","NE_T_EE","O_T_EE_d"
-]
+ATTRIBUTES = {
+    "tau_J_d": ['tau_J_d0','tau_J_d1', 'tau_J_d2', 'tau_J_d3', 'tau_J_d4', 'tau_J_d5', 'tau_J_d6'],
+    "tau_J": ['tau_J0','tau_J1', 'tau_J2', 'tau_J3', 'tau_J4', 'tau_J5', 'tau_J6'],
+    "tau_ext_hat_filtered": ['tau_ext0','tau_ext1','tau_ext2','tau_ext3','tau_ext4','tau_ext5','tau_ext6'],
+    "q": ['q0','q1','q2','q3','q4','q5','q6'],
+    "q_d": ['q_d0','q_d1','q_d2','q_d3','q_d4','q_d5','q_d6'],
+    "dq": ['dq0','dq1','dq2','dq3','dq4','dq5','dq6'],
+    "dq_d": ['dq_d0','dq_d1','dq_d2','dq_d3','dq_d4','dq_d5','dq_d6'],
+}
+
+# Global constants for calculated attributes
+CALCULATED_ATTRIBUTES = {
+    "e": ['e0','e1','e2','e3','e4','e5','e6'],
+    "de": ['de0','de1','de2','de3','de4','de5','de6'],
+    "etau": ['etau_J0','etau_J1', 'etau_J2','etau_J3','etau_J4','etau_J5','etau_J6']
+}
 
 # CREATE FOLDER FOR KEEP DATA
 script_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(script_dir ,"data")
+data_dir = os.path.join(script_dir, "data")
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
 # Create subfolder
 subfolder_name = input("Enter the subfolder name: ")
-subfolder_path = os.path.join(data_dir,subfolder_name)
+subfolder_path = os.path.join(data_dir, subfolder_name)
 if not os.path.exists(subfolder_path):
     os.makedirs(subfolder_path)
 
@@ -76,7 +87,7 @@ plot_folder_path = os.path.join(subfolder_path, "plot")
 if not os.path.exists(plot_folder_path):
     os.makedirs(plot_folder_path)
 
-# create the name of csv file
+# create the name of json file
 start_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 json_file_path = os.path.join(subfolder_path, start_timestamp + "_all_attributes.json")
 
@@ -90,7 +101,7 @@ def save_data_to_json(attribute_name, value, timestamp):
     data_entry = {
         "timestamp": timestamp,
         "attribute_name": attribute_name,
-        "values": value
+        "values": dict(zip(ATTRIBUTES.get(attribute_name, CALCULATED_ATTRIBUTES.get(attribute_name, [])), value))
     }
     
     with open(json_file_path, mode='r+') as file:
@@ -99,24 +110,16 @@ def save_data_to_json(attribute_name, value, timestamp):
         file.seek(0)
         json.dump(data, file, indent=4)
 
-# Initialize individual csv files
-# def initialize_csv(attribute_name):
-#     csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
-#     headers = ["timestamp", "values"]
-#     with open(csv_file_path, mode="w", newline="") as file:
-#         writer = csv.writer(file)
-#         writer.writerow(headers)
-def initialize_csv(attribute_name):
+# Initialize CSV files for each attribute
+def initialize_csv(attribute_name, headers):
     csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
-    headers = ["timestamp"] + [f"col{i}" for i in range(1, len(ATTRIBUTES)+1)]
+    headers = ["timestamp"] + headers
     with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
-
-
 # Save data to csv file
-def save_data_to_csv(attribute_name,value,timestamp):
+def save_data_to_csv(attribute_name, value, timestamp):
     csv_file_path = os.path.join(subfolder_path, f"{attribute_name}.csv")
     
     with open(csv_file_path, mode='a', newline="") as file:
@@ -126,27 +129,43 @@ def save_data_to_csv(attribute_name,value,timestamp):
         else:
             row = [timestamp, value]
         writer.writerow(row)
-    
 
+# Print and save robot state
 def print_robot_state(data):
     timestamp = datetime.datetime.now().isoformat()
     data_entry = {}
 
-    for attribute_name in ATTRIBUTES:
-        if hasattr(data,attribute_name):
-            value = getattr(data,attribute_name)
+    for attribute_name, headers in ATTRIBUTES.items():
+        if hasattr(data, attribute_name):
+            value = getattr(data, attribute_name)
             data_entry[attribute_name] = value
             save_data_to_json(attribute_name, value, timestamp)
             save_data_to_csv(attribute_name, value, timestamp)
-
             print(f"{timestamp} : {data_entry}")
-            # print(data.q)
 
+    # Calculate e, de, etau
+    if all(hasattr(data, attr) for attr in ["q_d", "q", "dq_d", "dq", "tau_J_d", "tau_J"]):
+        e = np.array(getattr(data, "q_d")) - np.array(getattr(data, "q"))
+        de = np.array(getattr(data, "dq_d")) - np.array(getattr(data, "dq"))
+        etau = np.array(getattr(data, "tau_J_d")) - np.array(getattr(data, "tau_J"))
+
+        e = e.tolist()
+        de = de.tolist()
+        etau = etau.tolist()
+
+        save_data_to_json("e", e, timestamp)
+        save_data_to_csv("e", e, timestamp)
+        save_data_to_json("de", de, timestamp)
+        save_data_to_csv("de", de, timestamp)
+        save_data_to_json("etau", etau, timestamp)
+        save_data_to_csv("etau", etau, timestamp)
+
+        print(f"{timestamp} : e={e}, de={de}, etau={etau}")
 
 if __name__ == '__main__':
     initialize_json()
-    for attribute in ATTRIBUTES:
-        initialize_csv(attribute)
+    for attribute, headers in {**ATTRIBUTES, **CALCULATED_ATTRIBUTES}.items():
+        initialize_csv(attribute, headers)
     # create FrankaArm instance
     fa = FrankaArm()
 
