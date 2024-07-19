@@ -49,8 +49,6 @@ import datetime
 import os
 import subprocess
 
-import visualization
-
 
 # Global constant for attributes
 ATTRIBUTES = {

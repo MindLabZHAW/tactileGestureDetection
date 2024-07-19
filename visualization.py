@@ -1,22 +1,37 @@
+import json
 import pandas as pd
-import matplotlib.pyplot as plt
 import os
+import plotly.express as px
+import plotly.io as pio
+import cufflinks as cf
+from plotly.offline import iplot, init_notebook_mode
 
-def plot_attribute(csv_file_path, plot_file_path):
+# Enable Plotly and Cufflinks offline mode
+cf.go_offline(connected=True)
+init_notebook_mode(connected=True)
+
+
+def clear_directory(directory, extension=".png"):
+    """Delete all files with a given extension in the directory."""
+    for filename in os.listdir(directory):
+        if filename.endswith(extension):
+            file_path = os.path.join(directory, filename)
+            os.remove(file_path)
+            print(f"Deleted existing plot: {file_path}")
+
+def plot_attribute(input_file_path, plot_file_path):
     # Ensure the plot_file_path directory exists; create if not
     if not os.path.exists(plot_file_path):
         os.makedirs(plot_file_path)
 
-
-    #generate a list of colors using a colormap
-    # cmap =  plt.get_cmap("tab10")
-    # colors = [cmap(i) for i in range(num_columns)]
+    # Clear the directory of existing .png files
+    clear_directory(plot_file_path, ".png")
 
     # Iterate through each CSV file in csv_file_path directory
-    for filename in os.listdir(csv_file_path):
-        if filename.endswith(".csv"):
+    for filename in os.listdir(input_file_path):
+        if filename.endswith(".json"):
             # Check if the file starts with any attribute in the list
-            csv_file = os.path.join(csv_file_path, filename)
+            input_file = os.path.join(input_file_path, filename)
             plot_file = os.path.join(plot_file_path, os.path.splitext(filename)[0] + ".png")    
 
             # Check if the plot file exists and delete it if it does
@@ -25,75 +40,101 @@ def plot_attribute(csv_file_path, plot_file_path):
                 print(f"Existing plot {plot_file} deleted.")    
 
             try:
-                    # Read CSV file to handle files 
-                df = pd.read_csv(csv_file, sep=",")
-                    #print(df.head())
+                 # read the JSON  file 
+                 with open(input_file,"r") as f:
+                     data = json.load(f)
 
-                    # Print the number of columns in the CSV file
-                    # print(f"File: {filename}, Number of columns: {len(df.columns)}")
+                # convert JSON data to DataFrame
+                 records = []
+                 for entry in data:
+                    timestamp = entry["timestamp"]
+                    attribute_name = entry["attribute_name"]
+                    for key,value in entry["values"].items():
+                         records.append({
+                            "timestamp": timestamp,
+                            "attribute_name": attribute_name,
+                            "variable": key,
+                            "value": value
+                         }
+                        )
+                 
+                 #print(records)
 
-                # Extract timestamp and values for each column
-                timestamp = pd.to_datetime(df["timestamp"])
-                #print(f"timestamp is {timestamp}")
-                columns_to_plot = df.columns[1:num_columns+1]  # Adjust indices based on actual CSV structure
 
-                # Plotting
-                plt.figure(figsize=(12, 6))
+                 df = pd.DataFrame(records)
+                 df["timestamp"] = pd.to_datetime(df["timestamp"] )
 
-                for i, col in enumerate(columns_to_plot):
-                    plt.plot(timestamp, df[col], color=colors[i], label=f'Column {i+1}')
+                # Calculate time difference in seconds
+                 df["time_diff"] = (df["timestamp"] - df["timestamp"].min()).dt.total_seconds()
 
-                plt.xlabel('Timestamp')
-                plt.ylabel('Values')
-                plt.title(f'Waveform of {filename}')
-                plt.legend(loc="center left",bbox_to_anchor = (1,0.5))
-                plt.grid(True)
-                plt.tight_layout()
+                 # generate plots for q and q_d
+                
+                 df_q_qd = df[df['attribute_name'].isin(["q","q_d"])]
 
-                # Save the plot
-                plt.savefig(plot_file)
-                plt.close()
-                print(f"Plot saved to {plot_file}")
+                 #df.df.iplot(x='time_diff', y= "value",color = "variable")
+                 
+                 fig = px.line(df_q_qd, x='time_diff', y= "value",color = "variable")
+                 fig.update_layout(width=1000, height=600)
+
+                 plot_file = os.path.join(plot_file_path, "q & q_d.png")
+                 fig.write_image(plot_file)
+                 print(f"Plot saved: {plot_file}")
+
+            
+                # Generate plots for tau_ext_hat_filtered and tau_J
+                 df_tau_ext = df[df['attribute_name'] == "tau_ext_hat_filtered"]
+                 df_tau_J = df[df['attribute_name'] == "tau_J"]
+                 
+                 combined_df_tau = pd.concat([df_tau_ext,df_tau_J]).pivot(index= "time_diff",columns=["attribute_name","variable"],values = "value")
+
+                # Generate combined time series plot for tau_ext_hat_filtered and tau_J
+                 plot = combined_df_tau.iplot(xTitle = "time",yTitle = "value",asFigure = True)
+
+
+
+                #  fig_combined = px.line(pd.concat([df_tau_ext, df_tau_J]), x='time_diff', y='value', color='variable', title='tau_ext_hat_filtered and tau_J Combined')
+                #  fig_combined.write_image(os.path.join(plot_file_path, "tau_combined.png"))
+                #  print(f"Plot saved: {plot_file_path}/tau_combined.png")
+                 tau_combined_plot_file = os.path.join(plot_file_path, "tau_combined.png")
+                 pio.write_image(plot, tau_combined_plot_file)
+                 print(f"Plot saved: {tau_combined_plot_file}")
+
+
+                 
+
+                # Generate individual time series plots for each combination of variables
+                 tau_ext_vars = df_tau_ext['variable'].unique()
+                 tau_J_vars = df_tau_J['variable'].unique()
+
+                  # Pair variables by their index
+                 min_length = min(len(tau_ext_vars), len(tau_J_vars))
+                 for i in range(min_length):
+                    tau_ext_var = tau_ext_vars[i]
+                    tau_J_var = tau_J_vars[i]
+
+                    df_tau_ext_var = df_tau_ext[df_tau_ext['variable'] == tau_ext_var]
+                    df_tau_J_var = df_tau_J[df_tau_J['variable'] == tau_J_var]
+
+                    # Combine both variable data for plotting
+                    df_combined_var = pd.concat([df_tau_ext_var, df_tau_J_var])
+                    if not df_combined_var.empty:
+                        fig_combined_var = px.line(df_combined_var, x='time_diff', y='value', color='attribute_name', title=f'{tau_ext_var} vs {tau_J_var}')
+                        fig_combined_var.update_layout(width=1000, height=600)
+                        var_plot_file = os.path.join(plot_file_path, f"{tau_ext_var}_{tau_J_var}.png")
+                        fig_combined_var.write_image(var_plot_file)
+                        print(f"Plot saved: {var_plot_file}")
+
+
+
             except Exception as e:
-                print(f"Error plotting {csv_file}: {e}")
-# def plot_2d_attribute(csv_file_path, plot_file_path):
-#     attributes_2 = ["elbow", "	elbow_d", "elbow_c", "delbow_c", "ddelbow_c"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_2, 2)
+                        print(f"Failed to process file {input_file}: {e}")
+                     
 
 
-# def plot_3d_attribute(csv_file_path, plot_file_path):
-#     attributes_3 = ["F_x_Cee", "F_x_Cload", "F_x_Ctotal"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_3, 3)
-
-
-# def plot_6d_attribute(csv_file_path, plot_file_path):
-#     attributes_6 = ["cartesian_contact", "cartesian_collision", "O_F_ext_hat_K", "K_F_ext_hat_K", "O_dP_EE_d", "O_dP_EE_c", "O_ddP_EE_c"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_6, 6)
-
-# def plot_7d_attribute(csv_file_path, plot_file_path):
-#     attributes_7 = ["q", "q_d", "tau_ext_hat_filtered","joint_collision","tau_J", "tau_J_d", "theta", "dtheta","dtau_J","dq","dq_d","ddq_d","joint_contact"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_7, 7)
-   
-
-# def plot_9d_attribute(csv_file_path, plot_file_path):
-#     attributes_9 = ["I_ee", "I_load", "I_total"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_9, 9)
-
-
-# def plot_16d_attribute(csv_file_path, plot_file_path):
-#     attributes_16 = ["O_T_EE", "O_T_EE_d", "F_T_EE", "F_T_NE", "NE_T_EE", "EE_T_K", "O_T_EE_c"]
-#     plot_attribute(csv_file_path, plot_file_path, attributes_16, 16)
 
 
 # Example usage:
 if __name__ == '__main__':
-    csv_file_path = "data/111"
-    plot_file_path = "data/111/plot"
-    plot_attribute(csv_file_path, plot_file_path)
-
-    # plot_2d_attribute(csv_file_path, plot_file_path)
-    # plot_3d_attribute(csv_file_path, plot_file_path)
-    # plot_7d_attribute(csv_file_path, plot_file_path)
-    # plot_6d_attribute(csv_file_path, plot_file_path)
-    # plot_9d_attribute(csv_file_path, plot_file_path)
-    # plot_16d_attribute(csv_file_path, plot_file_path)
+    input_file_path = "data/0719-7RST-1"
+    plot_file_path = "data/0719-7RST-1/plot"
+    plot_attribute(input_file_path, plot_file_path)
