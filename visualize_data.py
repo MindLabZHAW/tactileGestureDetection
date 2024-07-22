@@ -4,9 +4,8 @@ import os
 import matplotlib.pyplot as plt
 
 class make_folder_dataset:
-    def __init__(self, folder_path: str, save_path: str, plot_save_path: str) -> None:
+    def __init__(self, folder_path: str, plot_save_path: str) -> None:
         self.path = folder_path
-        self.save_path = save_path
         self.plot_save_path = plot_save_path
         self.num_lines_per_message = 130
         self.df = pd.DataFrame()
@@ -31,7 +30,7 @@ class make_folder_dataset:
             data_dict[header[i]].append(float(y[i]))
 
     def extract_robot_data(self):
-        f = open(self.path + 'all_data.txt', 'r')
+        f = open(os.path.join(self.path, 'all_data.txt'), 'r')
         lines = f.readlines()
         keywords = ['time'] + self.tau + self.tau_d + self.tau_ext + self.q + self.q_d + self.dq + self.dq_d
         data_dict = dict.fromkeys(keywords)
@@ -54,7 +53,7 @@ class make_folder_dataset:
             self._extract_array(data_dict, data_frame, self.dq_d, 31)
 
         self.df = pd.DataFrame.from_dict(data_dict)
-        self.df = self.df.drop(index=0).reset_index()
+        self.df = self.df.drop(index=0).reset_index(drop=True)
         for i in range(len(self.e)):
             self.df[self.e[i]] = self.df[self.q_d[i]] - self.df[self.q[i]]
         for i in range(len(self.de)):
@@ -62,94 +61,73 @@ class make_folder_dataset:
         for i in range(len(self.etau)):
             self.df[self.etau[i]] = self.df[self.tau_d[i]] - self.df[self.tau[i]]
         self.ros_time = self.df['time'][0]
-        self.df.time = self.df.time - self.df.time[0]
-        self.df.to_csv(self.save_path + 'labeled_data.csv', index=False)
-
-    def get_labels(self, df):
-        true_label = pd.read_csv(self.path + 'true_label.csv')
-        true_label['time'] = true_label['time_sec'] + true_label['time_nsec'] - self.ros_time
-        time_dev = true_label['time'].diff()
-        contact_events_index = np.append([0], true_label['time'][time_dev > 0.05].index.values)
-        contact_events_index = np.append(contact_events_index, true_label['time'].shape[0] - 1)
-        contact_count = 0
-        df['label'] = 0
-
-        for i in range(df['time'].shape[0]):
-            if (df['time'][i] - true_label['time'][contact_events_index[contact_count]]) > 0:
-                contact_count += 1
-                if contact_count == len(contact_events_index):
-                    break
-                for j in range(i, df['time'].shape[0]):
-                    df.loc[j, 'label'] = 1
-                    if (df['time'][j] - true_label['time'][contact_events_index[contact_count] - 1]) > 0:
-                        i = j
-                        break
-        return df
-
-    def make_sequence(self):
-        seq_num = 28
-        gap = 4
-        selected_features = self.e + self.tau
-        dataset = pd.DataFrame(np.ones((int((self.df.shape[0] - seq_num) / gap), seq_num * len(selected_features) + 1)) * 2)
-        index = 0
-        state = False
-        last_contact_indexes = self.df.loc[self.df['label'] == 1, 'index'].values
-        last_contact_indexes = last_contact_indexes[last_contact_indexes.shape[0] - 1]
-
-        for i in range(0, last_contact_indexes, gap):
-            if state:
-                window = self.df[selected_features][i:i + seq_num]
-                dataset.iloc[index, 0] = self.df['label'][i + seq_num]
-                dataset.iloc[index, 1:len(dataset.columns)] = np.hstack(window.to_numpy())
-                index += 1
-            else:
-                if self.df['label'][i + seq_num] == 1:
-                    state = 1
-        self.dataset = dataset.drop(index=dataset.loc[dataset[0] == 2, 0].index)
-
-        name = self.path.split('/')[-2] + '.csv'
-        self.dataset.to_csv(self.save_path + name, index=False)
-        return self.dataset
-
-    def split_data(self, train_split_rate=0.75):
-        msk = np.random.rand(len(self.dataset)) < train_split_rate
-        train = self.dataset.loc[msk, :]
-        test = self.dataset.loc[~msk, :]
-        name = self.path.split('/')[-2] + '_train.csv'
-        train.to_csv(self.save_path + name, index=False)
-        name = self.path.split('/')[-2] + '_test.csv'
-        test.to_csv(self.save_path + name, index=False)
+        self.df['time'] = self.df['time'] - self.ros_time
+     
 
     def plot_data(self, targetA, targetB):
-        for i in range(len(targetA)):
-            plt.figure()
-            plt.plot(self.df['time'], self.df[targetA[i]], label=targetA[i])
-            plt.plot(self.df['time'], self.df[targetB[i]], label=targetB[i])
+        if targetA == self.q and targetB == self.q_d:
+            plt.figure(figsize=(16,8))
+            self.df.plot(x='time', y=targetA + targetB)
+            plt.title('q and q_d combined plot')
             plt.xlabel('Time (sec)')
-            plt.legend()
-            plt.savefig(os.path.join(self.plot_save_path, f'{targetA[i]}_{targetB[i]}.png'))
+            plt.ylabel('Value')
+            plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            plt.tight_layout()
+            file_path = os.path.join(self.plot_save_path, 'q_q_d_combined.png')
+            plt.savefig(file_path)
             plt.close()
+            print(f'{file_path} generated successfully.')
 
-def process_data_and_plot(dataset_path, plot_save_path):
-    os.makedirs(plot_save_path, exist_ok=True)
-    files_and_dirs = os.listdir(dataset_path)
+        elif targetA == self.tau_ext and targetB == self.tau:
+            plt.figure(figsize=(12,8))
+            self.df.plot(x='time', y=targetA + targetB)
+            plt.title('tau_ext and tau combined plot')
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Value')
+            plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            plt.tight_layout()
+            file_path = os.path.join(self.plot_save_path, 'tau_ext_tau_combined.png')
+            plt.savefig(file_path)
+            plt.close()
+            print(f'{file_path} generated successfully.')
 
-    for folder_name in files_and_dirs:
-        folder_path = os.path.join(dataset_path, folder_name)
-        save_data_file = os.path.join(dataset_path, folder_name)
-        os.makedirs(save_data_file, exist_ok=True)
-        plot_path = os.path.join(plot_save_path, folder_name)
-        os.makedirs(plot_path, exist_ok=True)
-        data = make_folder_dataset(folder_path, save_data_file, plot_path)
-        data.extract_robot_data()
-        targetA = data.q
-        targetB = data.q_d
-        data.plot_data(targetA, targetB)
-        targetB = data.tau
-        data.plot_data(targetA, targetB)
+            for i in range(len(targetA)):
+                plt.figure(figsize=(24,8))
+                self.df.plot(x='time', y=[targetA[i], targetB[i]])
+                plt.title(f'{targetA[i]} and {targetB[i]} plot')
+                plt.xlabel('Time (sec)')
+                plt.ylabel('Value')
+                plt.tight_layout()
+                plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                file_path = os.path.join(self.plot_save_path, f'{targetA[i]}_{targetB[i]}.png')
+                plt.savefig(file_path)
+                plt.close()
+                print(f'{targetA[i]}_{targetB[i]}.png generated successfully.')
 
 
-dataset_path = '../tactileGestureDetection/DATA/'
-plot_save_path = '../tactileGestureDetection/DATA/plots/'
+def process_data_and_plot(dataset_folder_path, plot_save_path):
+    # Clear the plot_save_path directory
+    if os.path.exists(plot_save_path):
+        for file_name in os.listdir(plot_save_path):
+            file_path = os.path.join(plot_save_path, file_name)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+    else:
+        os.makedirs(plot_save_path)
+
+    file_path = dataset_folder_path
+    plot_path = plot_save_path
+    #os.makedirs(plot_path, exist_ok=True)
+    data = make_folder_dataset(file_path, plot_path)
+    data.extract_robot_data()
+    targetA = data.q
+    targetB = data.q_d
+    data.plot_data(targetA, targetB)
+    targetA =data.tau_ext
+    targetB = data.tau
+    data.plot_data(targetA, targetB)
+
+dataset_path = '../tactileGestureDetection/DATA/0722-7RST-1'
+plot_save_path = '../tactileGestureDetection/DATA/0722-7RST-1/plots/'
 
 process_data_and_plot(dataset_path, plot_save_path)
