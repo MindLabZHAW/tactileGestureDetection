@@ -31,6 +31,8 @@ How to Run:
         source robotAPI/franka-interface/catkin_ws/devel/setup.bash --extend
         source robotAPI/frankapy/catkin_ws/devel/setup.bash --extend
         $HOME/miniconda/envs/frankapyenv/bin/python3 frankaRobot/saveDataNode.py
+
+        $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/saveData.py
 """
 
 ## Import required libraries 
@@ -45,7 +47,8 @@ import datetime
 import os
 
 # Set the default PATH
-PATH = 'DATA/'
+PATH = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/'
+
 
 # Prompt the user to enter a tag name for data labeling
 folder_name = input('Enter tag name: ')
@@ -63,17 +66,11 @@ class LogData:
 
         # Create empty files for saving data
         self.file_all = open(self.PATH + '/all_data.txt', 'w')
-        self.file_index = csv.writer(open(self.PATH + '/true_label.csv', 'w'))
-        self.file_index.writerow(('time_sec', 'time_nsec', 'timestamp', 'DATA0', 'DATA1', 'DATA2', 'DATA3', 'DATA4'))
-
-        self.log_model_result = csv.writer(open(self.PATH + '/model_result.csv', 'w'))
-        self.log_model_result.writerow(('Time_sec', 'Time_nsec', 'prediction_duration', 'contact_out', 'collision_out', 'localization_out'))
+        
         print('*** Four empty text files are created in ', self.PATH, ' ***')
 
-        # Subscribe to relevant ROS topics
-        rospy.Subscriber(name="/model_output", data_class=numpy_msg(Floats), callback=self.save_model_output)
         rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=self.save_robot_state)
-        rospy.Subscriber(name="/contactTimeIndex", data_class=numpy_msg(Floats), callback=self.save_contact_index)
+       
 
     def save_contact_index(self, data):
         # Save contact index data to true_label.csv
