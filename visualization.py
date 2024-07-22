@@ -127,6 +127,6 @@ def plot_attribute(input_file_path, plot_file_path):
 
 
 if __name__ == '__main__':
-    input_file_path = "data/0719-7RST-1"
-    plot_file_path = "data/0719-7RST-1/plot"
+    input_file_path = "data/0123"
+    plot_file_path = "data/0123/plot"
     plot_attribute(input_file_path, plot_file_path)
