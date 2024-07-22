@@ -41,7 +41,7 @@ from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from frankapy import FrankaArm
 from franka_interface_msgs.msg import RobotState
-from threading import Thread
+from threading import Lock, Thread
 from threading import Event
 
 import csv
@@ -158,16 +158,30 @@ def print_robot_state(data):
         save_data_to_json("etau", etau, timestamp)
         save_data_to_csv("etau", etau, timestamp)
 
-        print(f"{timestamp} : e={e}, de={de}, etau={etau}")
+
+def initialize_ros_node():
+    try:
+        rospy.get_master().getPid()
+    except:
+        rospy.init_node('franka_data_collector', anonymous=True)
+
 
 if __name__ == '__main__':
     initialize_json()
+
+    json_lock = Lock()
+    csv_lock = Lock()
+
     for attribute, headers in {**ATTRIBUTES, **CALCULATED_ATTRIBUTES}.items():
         initialize_csv(attribute, headers)
+
+    # Initialize ROS node
+    initialize_ros_node()
+
     # create FrankaArm instance
     fa = FrankaArm()
 
-    rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1)
+    rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=print_robot_state, queue_size=1000)
     rospy.spin()
 
 
