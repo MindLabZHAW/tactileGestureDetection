@@ -11,14 +11,24 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchmetrics import ConfusionMatrix
 from ncps.torch import LTC, CfC
 from ncps.wirings import AutoNCP
 
-from Process_Data.Data2Models import create_tensor_dataset_without_torque
+import sys
+sys.path.append("Process_Data")
+from Data2Models import create_tensor_dataset_without_torque
 
 num_features = 4
-num_class = 5
+num_classes = 5
 
+network_type = 'NCPCfC'
+train_all_data = False # train a model using all avaiable data
+
+collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
+#collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
+#collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
 
 
 class Sequence(nn.Module):
@@ -33,22 +43,27 @@ class Sequence(nn.Module):
             hidden_size = 50
             self.innernet = nn.GRU(input_size=num_features*28, hidden_size=hidden_size, num_layers=1, batch_first=True)
         elif network_type == 'FCLTC':
+            num_features = 4
             units = 50
             self.innernet = LTC(input_size=num_features*28, units=units, batch_first=True)
         elif network_type == 'FCCfC':
+            num_features = 4
             units = 50
             self.innernet = CfC(input_size=num_features*28, units=units, batch_first=True)
         elif network_type == 'NCPLTC':
-            units = 50
+            num_features = 4
+            units = 53
             input_size = num_features*28
-            output_sizt = 1
-            self.innernet = LTC(input_size=input_size, units=AutoNCP(units=units, output_size=output_sizt), batch_first=True)
+            output_size = 50
+            self.innernet = LTC(input_size=input_size, units=AutoNCP(units=units, output_size=output_size), batch_first=True)
         elif network_type == 'NCPCfC':
-            units = 50
+            num_features = 4
+            units = 53
             input_size = num_features*28
-            output_sizt = 1
-            self.innernet = CfC(input_size=input_size, units=AutoNCP(units=units, output_size=output_sizt), batch_first=True)
-        self.linear = nn.Linear(in_features=50, out_features=num_class)
+            output_size = 50
+            self.innernet = CfC(input_size, AutoNCP(units=units, output_size=output_size), batch_first=True) ### youwenti!
+        self.linear = nn.Linear(in_features=50, out_features=num_classes)
+        ## need to check output_size
 
     def forward(self, input):
         x,_ = self.innernet(input)
@@ -87,8 +102,8 @@ if __name__ == '__main__':  ### 还没搞完
         torch.cuda.get_device_name()
     
     # Load data and create training and testing sets
-    training_data = create_tensor_dataset_without_torque(main_path+'/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features_lstm=num_features_lstm)
-    testing_data = create_tensor_dataset_without_torque(main_path+'/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features_lstm=num_features_lstm)
+    training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
+    testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
 
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)
     test_dataloader = DataLoader(testing_data, batch_size=batch_size, shuffle= True)
@@ -97,8 +112,8 @@ if __name__ == '__main__':  ### 还没搞完
     print(f"Feature batch shape: {train_features.size()}")
     print(f"Labels batch shape: {train_labels.size()}")
 
-    # Build the model
-    model= Sequence(num_classes, network_type, num_features_lstm)
+    # Build the model  
+    model= Sequence(network_type)
     model = model.double()
     # Use Adam optimizer and CrossEntropyLoss as the loss function
     optimizer = optim.Adam(model.parameters(), lr=lr)
