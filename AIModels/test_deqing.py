@@ -1,7 +1,6 @@
-import numpy as np
-import torch.nn as nn
-from ncps.wirings import AutoNCP 
-from ncps.torch import LTC
-import pytorch_lightning as pl
 import torch
-import torch.utils.data as data
+
+print(torch.__version__)
+
+print(torch.version.cuda)
+print(torch.backends.cudnn.version())

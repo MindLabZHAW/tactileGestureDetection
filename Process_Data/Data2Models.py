@@ -150,6 +150,22 @@ class create_tensor_dataset_without_torque(Dataset):
         self.data_input.columns = range(self.num_features_dataset * self.data_seq)
         self.data_input = self.data_input.loc[:][joint_data_pos]
 
+class create_tensor_dataset(Dataset):
+    
+    def __int__(self, path="", num_classes=3, num_features=10,):
+        self.path = path
+        self.num_classes = num_classes
+        self.num_features = num_features
+
+        # tau_J,tau_J_d,tau_ext,q,q_d,dq,dq_d,e,de,etau_J
+        # label,block_id,touch_type
+
+        self.read_dataset()
+
+    def read_dataset(self):
+        data = pd.read_csv(self.path)
+        data_input = data.iloc[:, 1:data.shape[1]]
+        data_target = data['label']
 
 if __name__ == '__main__':
     #data = pd.read_csv('../contactInterpretation-main/dataset/realData/contact_detection_train.csv')

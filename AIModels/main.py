@@ -71,7 +71,7 @@ class Sequence(nn.Module):
         x = self.linear(x)
         return x
     
-def get_output(data_ds, model): ## 还没搞完
+def get_output(data_ds, model): 
     labels_pred = []
     model.eval()
     with torch.no_grad():
@@ -97,6 +97,7 @@ if __name__ == '__main__':  ### 还没搞完
     np.random.seed(2020)
     random.seed(2020)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
 
     if device.type == "cuda":
         torch.cuda.get_device_name()
