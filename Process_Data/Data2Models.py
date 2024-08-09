@@ -4,8 +4,12 @@ from torch.utils.data import Dataset
 import torch
 from torchvision import transforms
 
+
 class create_tensor_dataset_without_torque(Dataset):
-    
+    """
+    Used to transfer Maryam's old data into our AI Models
+    If using own data, use class 'create_tensor_dataset'
+    """
     def __init__(self, path = '../contactInterpretation-main/dataset/realData/contact_detection_train.csv', transform = transforms.Compose([transforms.ToTensor()]), num_classes =5,
                  num_features_dataset = 28, num_features = 4, data_seq = 28, desired_seq = 28, localization= False, collision =False):
         self.path = path #n * 784
