@@ -27,4 +27,7 @@ from threading import Event
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 print(f"main_path is {main_path}")
 # Define parameters for the KNN models
+num_neighbors = 1
+weights = 'uniform'
 
+contact_detection_path = main_path + ""
