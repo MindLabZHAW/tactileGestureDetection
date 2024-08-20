@@ -18,7 +18,11 @@ df = pd.read_csv(data_path)
 
 # Group by 'block_id' and calculate mean of each feature
 
-numerical_columns = df.drop(=["index","time","label","touch_type"]).columns
+numerical_columns = df.drop(columns =["index","time","label","touch_type"]).columns
+
+e_q = np.array(df.q_d) - np.array(df.q)
+e_dq = np.array(df.dq_d) - np.array(df.dq)
+
 grouped_df = df.groupby('block_id')[numerical_columns].mean()
 
 # Extract labels
