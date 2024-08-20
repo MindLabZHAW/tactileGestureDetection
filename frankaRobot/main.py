@@ -20,7 +20,7 @@ dof = 7
 features_num = 28  # Update this to reflect the actual number of features
 
 # Load the KNN model
-model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
+model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
 model = joblib.load(model_path)
 
 # Prepare window to collect features
@@ -61,9 +61,9 @@ def contact_detection(data):
 if __name__ == "__main__":
     global publish_output, big_time_digits
 
-    # # Load inverse label map for decoding predictions
-    # label_classes = ['DT', 'G']  # Update according to your dataset
-    # label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
+    # Load inverse label map for decoding predictions
+    label_classes = ['DT','G','P','ST','NC']  # Update according to your dataset
+    label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
 
     event = Event()
     
@@ -76,8 +76,9 @@ if __name__ == "__main__":
     # Run the ROS event loop
     rospy.spin()
 
-    # After ROS loop ends, save results to a CSV file
+    """ # After ROS loop ends, save results to a CSV file
     results_df = pd.DataFrame(results, columns=['time_sec', 'predicted_touch_type'])
     results_path = main_path + 'predicted_touch_types.csv'
     results_df.to_csv(results_path, index=False)
     print(f'Predicted touch types saved to {results_path}')
+ """

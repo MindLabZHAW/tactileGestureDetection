@@ -8,14 +8,18 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import seaborn as sns
 import matplotlib.pyplot as plt
 import joblib 
+import os
 
 # path to save trained models
 data_path = 'DATA/tactile_dataset_block.csv'
 df = pd.read_csv(data_path)
 
 
+
 # Group by 'block_id' and calculate mean of each feature
-grouped_df = df.groupby('block_id').apply(np.mean)
+
+numerical_columns = df.select_dtypes(include=[np.number]).columns
+grouped_df = df.groupby('block_id')[numerical_columns].mean()
 
 # Extract labels
 labels = df.groupby('block_id')['touch_type'].first()
@@ -63,6 +67,7 @@ best_knn = grid_search.best_estimator_
 
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
+os.makedirs(folder_path, exist_ok=True)
 model_path = folder_path  +  'trained_knn_model.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
