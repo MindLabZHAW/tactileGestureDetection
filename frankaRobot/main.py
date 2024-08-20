@@ -39,11 +39,17 @@ def contact_detection(data):
     e_dq = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
-    tau = 
-    
+
+    # q = np.array(data.q)
+    # q_d = np.array(data.q_d)
+    # dq = np.array(dq)
+    # dq_d = np.array(dq_d)
+    # tau_J_d = np.array(tau_J_d)
+    # e = 
+    # de 
 
     # Create new row and update the sliding window
-    new_row = np.hstack((tau_J, tau_ext, e_q, e_dq)).reshape((1, features_num))
+    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num))
     window = np.append(window[1:, :], new_row, axis=0)
 
     # Flatten the window to create a feature vector for the model
@@ -64,7 +70,7 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_classes = ['DT','G','P','ST','NC']  # Update according to your dataset
+    label_classes = ['DT','G','P','ST']  # Update according to your dataset
     label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
 
     event = Event()
