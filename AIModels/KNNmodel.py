@@ -4,17 +4,22 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, classification_report,confusion_matrix
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
-import joblib
+import joblib 
+import os
 
-# Load data
+# path to save trained models
 data_path = 'DATA/tactile_dataset_block.csv'
 df = pd.read_csv(data_path)
 
+
+
 # Group by 'block_id' and calculate mean of each feature
-grouped_df = df.groupby('block_id').apply(np.mean)
+
+numerical_columns = df.select_dtypes(include=[np.number]).columns
+grouped_df = df.groupby('block_id')[numerical_columns].mean()
 
 # Extract labels
 labels = df.groupby('block_id')['touch_type'].first()
@@ -53,40 +58,44 @@ grid_search.fit(X_train, y_train)
 
 # Get the best parameters
 best_params = grid_search.best_params_
-print(f'Best parameters: {best_params}')
+# print(f'Best parameters: {best_params}')
+
+
 
 # Train KNN classifier with the best parameters
 best_knn = grid_search.best_estimator_
 
-# Perform cross-validation on the training set
-cv_scores = cross_val_score(best_knn,X_train,y_train,cv = 5)
-
-# Predict
-y_pred = best_knn.predict(X_test)
-
-# Evaluate accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print(f'Accuracy: {accuracy:.2f}')
-
-# Print predicted and true labels
-print(f'Predicted labels: {y_pred}')
-print(f'True labels: {y_test}')
-
-# Display classification report
-print(classification_report(y_test, y_pred, target_names=label_classes))
-
-conf_matrix = confusion_matrix(y_test,y_pred)
-
-#plot confusion matrix using seabon
-plt.figure()
-sns.heatmap(conf_matrix,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.title('Confusion Matrix')
-plt.show()
-
 # Save the trained KNN model for later use
-folder_path = 'AIModels/TrainedModels'
+folder_path = 'AIModels/TrainedModels/'
+os.makedirs(folder_path, exist_ok=True)
 model_path = folder_path  +  'trained_knn_model.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
+
+# # Perform cross-validation on the training set
+# cv_scores = cross_val_score(best_knn,X_train,y_train,cv = 5)
+
+# # Predict
+# y_pred = best_knn.predict(X_test)
+
+# # Evaluate accuracy
+# accuracy = accuracy_score(y_test, y_pred)
+# print(f'Accuracy: {accuracy:.2f}')
+
+# # Print predicted and true labels
+# print(f'Predicted labels: {y_pred}')
+# print(f'True labels: {y_test}')
+
+# # Display classification report
+# print(classification_report(y_test, y_pred, target_names=label_classes))
+
+# conf_matrix = confusion_matrix(y_test,y_pred)
+
+# #plot confusion matrix using seabon
+# plt.figure()
+# sns.heatmap(conf_matrix,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
+# plt.xlabel('Predicted Label')
+# plt.ylabel('True Label')
+# plt.title('Confusion Matrix')
+# plt.show()
+
