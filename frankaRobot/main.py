@@ -15,11 +15,12 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 print(f"main_path is {main_path}")
 
 # Parameters for the KNN models
-window_length = 28
+window_length = 500
 dof = 7
-features_num = 28  # Update this to reflect the actual number of features
+features_num = 73  
 
 # Load the KNN model
+
 model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
 model = joblib.load(model_path)
 
@@ -38,10 +39,17 @@ def contact_detection(data):
     e_dq = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
-    
+
+    # q = np.array(data.q)
+    # q_d = np.array(data.q_d)
+    # dq = np.array(dq)
+    # dq_d = np.array(dq_d)
+    # tau_J_d = np.array(tau_J_d)
+    # e = 
+    # de 
 
     # Create new row and update the sliding window
-    new_row = np.hstack((tau_J, tau_ext, e_q, e_dq)).reshape((1, features_num))
+    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num))
     window = np.append(window[1:, :], new_row, axis=0)
 
     # Flatten the window to create a feature vector for the model
@@ -62,7 +70,7 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_classes = ['DT','G','P','ST','NC']  # Update according to your dataset
+    label_classes = ['DT','G','P','ST']  # Update according to your dataset
     label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
 
     event = Event()
