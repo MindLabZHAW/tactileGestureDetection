@@ -10,36 +10,37 @@ import matplotlib.pyplot as plt
 import joblib 
 import os
 
-# path to save trained models
+
+# Load dataset
 data_path = 'DATA/tactile_dataset_block.csv'
 df = pd.read_csv(data_path)
 
+# Compute e_q and e_dq for q_d and q, dq_d and dq respectively
+e_q = np.array(df[['q_d0', 'q_d1', 'q_d2', 'q_d3', 'q_d4', 'q_d5','q_d6']]) - np.array(df[['q0', 'q1', 'q2', 'q3', 'q4', 'q5','q6']])
+e_dq = np.array(df[['dq_d0', 'dq_d1', 'dq_d2', 'dq_d3', 'dq_d4', 'dq_d5','dq_d6']]) - np.array(df[['dq0', 'dq1', 'dq2', 'dq3', 'dq4', 'dq5','dq6']])
 
+# Combine all required features into a single DataFrame
+# tau_J and tau_ext are assumed to be columns in df, each containing 6 subcolumns (tau_J0 - tau_J5, tau_ext0 - tau_ext5)
+tau_J = np.array(df[['tau_J0', 'tau_J1', 'tau_J2', 'tau_J3', 'tau_J4', 'tau_J5', 'tau_J6']])
+tau_ext = np.array(df[['tau_ext0', 'tau_ext1', 'tau_ext2', 'tau_ext3', 'tau_ext4', 'tau_ext5', 'tau_ext6']])
 
-# Group by 'block_id' and calculate mean of each feature
+# Concatenate e_q, e_dq, tau_J, and tau_ext into a feature matrix
+X_features = np.concatenate([tau_J,tau_ext,e_q, e_dq], axis=1)
 
-numerical_columns = df.drop(columns =["index","time","label","touch_type"]).columns
-
-e_q = np.array(df.q_d) - np.array(df.q)
-e_dq = np.array(df.dq_d) - np.array(df.dq)
-
-grouped_df = df.groupby('block_id')[numerical_columns].mean()
+# Group by 'block_id' and calculate mean of the selected features
+grouped_X = pd.DataFrame(X_features).groupby(df['block_id']).mean().values
 
 # Extract labels
 labels = df.groupby('block_id')['touch_type'].first()
 
-# Prepare feature matrix X and label vector y
-X = grouped_df.drop(columns=['block_id']).values  # Drop 'block_id' from features
-y = labels.values
-
 # Encode labels
-label_classes = np.unique(y)
+label_classes = np.unique(labels)
 label_map = {label: idx for idx, label in enumerate(label_classes)}
-y_encoded = np.array([label_map[label] for label in y])
+y_encoded = np.array([label_map[label] for label in labels])
 
 # Standardize the features
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X_scaled = scaler.fit_transform(grouped_X)
 
 # Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.3, random_state=42)
@@ -49,10 +50,9 @@ knn = KNeighborsClassifier()
 
 # Define hyperparameters grid
 param_grid = {
-    'n_neighbors': list(range(1, 21)),  # 搜索1到20范围内的邻居数
-    'weights': ['uniform', 'distance']  # 搜索'weights'参数中的两种不同模式
+    'n_neighbors': list(range(1, 21)),  # Search over 1 to 20 neighbors
+    'weights': ['uniform', 'distance']  # Search over 'uniform' and 'distance' weights
 }
-
 
 # Initialize GridSearchCV
 grid_search = GridSearchCV(knn, param_grid, cv=5, scoring='accuracy')
@@ -62,9 +62,7 @@ grid_search.fit(X_train, y_train)
 
 # Get the best parameters
 best_params = grid_search.best_params_
-# print(f'Best parameters: {best_params}')
-
-
+print(f'Best parameters: {best_params}')
 
 # Train KNN classifier with the best parameters
 best_knn = grid_search.best_estimator_
@@ -72,9 +70,10 @@ best_knn = grid_search.best_estimator_
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
 os.makedirs(folder_path, exist_ok=True)
-model_path = folder_path  +  'trained_knn_model.pkl'
+model_path = folder_path + 'trained_knn_model.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
+
 
 # # Perform cross-validation on the training set
 # cv_scores = cross_val_score(best_knn,X_train,y_train,cv = 5)
