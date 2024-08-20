@@ -119,8 +119,6 @@ class create_tensor_dataset_without_torque(Dataset):
 
         self.data_input = data_input.reset_index(drop=True)
         self.data_target = data_target.reset_index(drop=True)
-        # print(data_input)
-        # print(data_target)
 
     def data_in_seq(self):
 
@@ -156,7 +154,7 @@ class create_tensor_dataset_without_torque(Dataset):
 
 class create_tensor_dataset(Dataset):
     
-    def __int__(self, path="", num_classes=3, num_features=10,):
+    def __init__(self, path='../contactInterpretation-main/dataset/realData/contact_detection_train.csv', num_classes=4, num_features=10):
         self.path = path
         self.num_classes = num_classes
         self.num_features = num_features
@@ -165,16 +163,71 @@ class create_tensor_dataset(Dataset):
         # label,block_id,touch_type
 
         self.read_dataset()
+    
+    def __len__(self):
+        return len(self.data_target)
+
+
+    def __getitem__(self, index:int):
+        data_sample = torch.tensor(self.data_input[index])
+        # print(data_sample)
+        # print(data_sample.shape)
+        target = torch.tensor(self.data_target[index])
+        return data_sample, target
 
     def read_dataset(self):
-        data = pd.read_csv(self.path)
-        data_input = data.iloc[:, 1:data.shape[1]]
-        data_target = data['label']
+        df = pd.read_csv(self.path)
+        # exclude_columns = ['index', 'time', 'label', 'block_id', 'touch_type']
+        
+        joint0_colums = ['e0','de0','etau_J0']
+        joint1_colums = ['e1','de1','etau_J1']
+        joint2_colums = ['e2','de2','etau_J2']
+        joint3_colums = ['e3','de3','etau_J3']
+        joint4_colums = ['e4','de4','etau_J4']
+        joint5_colums = ['e5','de5','etau_J5']
+        joint6_colums = ['e6','de6','etau_J6']
+
+        joints_colums = [joint0_colums, joint1_colums, joint2_colums, joint3_colums, joint4_colums, joint5_colums, joint6_colums]
+
+        grouped = df.groupby('block_id')
+
+        self.data_input = []
+        self.data_target = []
+
+        for block_id, group in grouped:
+            # encoding label
+            label_i = group['touch_type'].iloc[0]
+            if label_i == 'ST':
+                self.data_target.append(1)
+            elif label_i == 'DT':
+                self.data_target.append(2)
+            elif label_i == 'P':
+                self.data_target.append(3)
+            elif label_i == 'G':
+                self.data_target.append(4)
+            else:
+                self.data_target.append(-1)
+            # resize to 7 lines data(7 joints)
+            joints_data = np.zeros((7,group.shape[0]*3)) # generate a initial numpy array 7x(499*3)
+            for i, joint_colums in enumerate(joints_colums):
+                data_i = group.loc[:, joint_colums].values.flatten()
+                joints_data[i,:] = data_i
+            # flatten_data = group.drop(columns=exclude_columns).values.flatten()
+            # flatten_data = group.loc[:, ['tau_J0','tau_J1','tau_J2','tau_J3','tau_J4','tau_J5','tau_J6']].values.flatten()
+            # print(np.size(flatten_data))
+            self.data_input.append(joints_data)
+
+        # print(self.data_input)
+        # print(self.data_target)
 
 if __name__ == '__main__':
-    #data = pd.read_csv('../contactInterpretation-main/dataset/realData/contact_detection_train.csv')
-    a = create_tensor_dataset_without_torque(collision=True)
-    dataS, tar = a[703]
-    print(dataS.size())
-    print(tar)
-    print(len(a))
+    # data = pd.read_csv('../contactInterpretation-main/dataset/realData/contact_detection_train.csv')
+    data_ds = create_tensor_dataset('DATA/tactile_dataset_block_train.csv')
+    data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=5, collision=True, localization=False, num_features=4)
+    data_sample = torch.tensor(data.data_input.iloc[0].values)
+    print(data_sample)
+    data_sample = torch.reshape(data_sample, (data.dof ,data.num_features*data.desired_seq))
+    print(data_sample)
+    print(data.data_target.iloc[0])
+    print(data_ds.data_target[0])
+    print(torch.tensor(data_ds.data_input[0]))
