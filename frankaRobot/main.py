@@ -15,11 +15,12 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 print(f"main_path is {main_path}")
 
 # Parameters for the KNN models
-window_length = 28
+window_length = 500
 dof = 7
-features_num = 28  # Update this to reflect the actual number of features
+features_num = 73  
 
 # Load the KNN model
+
 model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
 model = joblib.load(model_path)
 
@@ -38,6 +39,7 @@ def contact_detection(data):
     e_dq = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
+    tau = 
     
 
     # Create new row and update the sliding window
