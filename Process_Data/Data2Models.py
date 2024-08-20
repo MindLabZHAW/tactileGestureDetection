@@ -154,7 +154,7 @@ class create_tensor_dataset_without_torque(Dataset):
 
 class create_tensor_dataset(Dataset):
     
-    def __init__(self, path='../contactInterpretation-main/dataset/realData/contact_detection_train.csv', num_classes=4, num_features=10):
+    def __init__(self, path='../contactInterpretation-main/dataset/realData/contact_detection_train.csv', num_classes=4, num_features=4):
         self.path = path
         self.num_classes = num_classes
         self.num_features = num_features
@@ -179,13 +179,13 @@ class create_tensor_dataset(Dataset):
         df = pd.read_csv(self.path)
         # exclude_columns = ['index', 'time', 'label', 'block_id', 'touch_type']
         
-        joint0_colums = ['e0','de0','etau_J0']
-        joint1_colums = ['e1','de1','etau_J1']
-        joint2_colums = ['e2','de2','etau_J2']
-        joint3_colums = ['e3','de3','etau_J3']
-        joint4_colums = ['e4','de4','etau_J4']
-        joint5_colums = ['e5','de5','etau_J5']
-        joint6_colums = ['e6','de6','etau_J6']
+        joint0_colums = ['e0','de0','tau_J0','tau_ext0']
+        joint1_colums = ['e1','de1','tau_J1','tau_ext1']
+        joint2_colums = ['e2','de2','tau_J2','tau_ext2']
+        joint3_colums = ['e3','de3','tau_J3','tau_ext3']
+        joint4_colums = ['e4','de4','tau_J4','tau_ext4']
+        joint5_colums = ['e5','de5','tau_J5','tau_ext5']
+        joint6_colums = ['e6','de6','tau_J6','tau_ext6']
 
         joints_colums = [joint0_colums, joint1_colums, joint2_colums, joint3_colums, joint4_colums, joint5_colums, joint6_colums]
 
@@ -198,17 +198,17 @@ class create_tensor_dataset(Dataset):
             # encoding label
             label_i = group['touch_type'].iloc[0]
             if label_i == 'ST':
-                self.data_target.append(1)
+                self.data_target.append(0)
             elif label_i == 'DT':
-                self.data_target.append(2)
+                self.data_target.append(1)
             elif label_i == 'P':
-                self.data_target.append(3)
+                self.data_target.append(2)
             elif label_i == 'G':
-                self.data_target.append(4)
+                self.data_target.append(3)
             else:
                 self.data_target.append(-1)
             # resize to 7 lines data(7 joints)
-            joints_data = np.zeros((7,group.shape[0]*3)) # generate a initial numpy array 7x(499*3)
+            joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(499*3)
             for i, joint_colums in enumerate(joints_colums):
                 data_i = group.loc[:, joint_colums].values.flatten()
                 joints_data[i,:] = data_i
@@ -223,11 +223,8 @@ class create_tensor_dataset(Dataset):
 if __name__ == '__main__':
     # data = pd.read_csv('../contactInterpretation-main/dataset/realData/contact_detection_train.csv')
     data_ds = create_tensor_dataset('DATA/tactile_dataset_block_train.csv')
-    data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=5, collision=True, localization=False, num_features=4)
-    data_sample = torch.tensor(data.data_input.iloc[0].values)
-    print(data_sample)
-    data_sample = torch.reshape(data_sample, (data.dof ,data.num_features*data.desired_seq))
-    print(data_sample)
-    print(data.data_target.iloc[0])
-    print(data_ds.data_target[0])
-    print(torch.tensor(data_ds.data_input[0]))
+    # data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=5, collision=True, localization=False, num_features=4)
+    for i in range(len(data_ds)):
+        data_sample = torch.tensor(data_ds.data_input[i])
+        print(data_sample.shape)
+        print(data_sample)

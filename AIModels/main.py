@@ -20,46 +20,45 @@ import sys
 sys.path.append("Process_Data")
 from Data2Models import create_tensor_dataset
 
-num_features = 1
+num_features = 4
 num_classes = 4
+time_window = 200
 
-network_type = 'LSTM'
+batch_size = 64
+lr = 0.001
+n_epochs = 100
+
+network_type = 'FCLTC'
 train_all_data = False # train a model using all avaiable data
 
-collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
-#collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
-#collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
+# collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
+# collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
+# collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
 
 
 class Sequence(nn.Module):
     def __init__(self,network_type) :
         super(Sequence, self).__init__()
         if network_type == 'LSTM':
-            num_features = 3
             hidden_size = 50
-            self.innernet = nn.LSTM(input_size=num_features*499, hidden_size=hidden_size, num_layers=1, batch_first=True)
+            self.innernet = nn.LSTM(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
         elif network_type == 'GRU':
-            num_features = 4
             hidden_size = 50
-            self.innernet = nn.GRU(input_size=num_features*28, hidden_size=hidden_size, num_layers=1, batch_first=True)
+            self.innernet = nn.GRU(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
         elif network_type == 'FCLTC':
-            num_features = 4
             units = 50
-            self.innernet = LTC(input_size=num_features*28, units=units, batch_first=True)
+            self.innernet = LTC(input_size=num_features * time_window, units=units, batch_first=True)
         elif network_type == 'FCCfC':
-            num_features = 4
             units = 50
-            self.innernet = CfC(input_size=num_features*28, units=units, batch_first=True)
+            self.innernet = CfC(input_size=num_features * time_window, units=units, batch_first=True)
         elif network_type == 'NCPLTC':
-            num_features = 4
             units = 53
-            input_size = num_features*28
+            input_size = num_features * time_window
             output_size = 50
             self.innernet = LTC(input_size=input_size, units=AutoNCP(units=units, output_size=output_size), batch_first=True)
         elif network_type == 'NCPCfC':
-            num_features = 4
             units = 53
-            input_size = num_features*28
+            input_size = num_features * time_window
             output_size = 50
             self.innernet = CfC(input_size, AutoNCP(units=units, output_size=output_size), batch_first=True) ### youwenti!
         self.linear = nn.Linear(in_features=50, out_features=num_classes)
@@ -75,7 +74,7 @@ def get_output(data_ds, model):
     labels_pred = []
     model.eval()
     with torch.no_grad():
-        for i in range(data_ds.data_target.shape[0]):
+        for i in range(len(data_ds.data_target)):
             x , y = data_ds.__getitem__(i)
             x = x[None, :]
 
@@ -124,15 +123,14 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss()
     model.train()
 
+
     # Training loop
     for epoch in range(n_epochs):
         running_loss = []
         index_i = 0
         for X_batch, y_batch in train_dataloader:
-            index_i += 1
-            print(index_i)
-            print(X_batch.shape)
-            print(X_batch)
+            # print(X_batch.shape)
+            # print(X_batch)
             optimizer.zero_grad()
             y_pred = model(X_batch)
             #torch.argmax(y_pred, dim=1)
