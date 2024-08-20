@@ -18,12 +18,12 @@ from ncps.wirings import AutoNCP
 
 import sys
 sys.path.append("Process_Data")
-from Data2Models import create_tensor_dataset_without_torque
+from Data2Models import create_tensor_dataset
 
-num_features = 4
-num_classes = 5
+num_features = 1
+num_classes = 4
 
-network_type = 'NCPCfC'
+network_type = 'LSTM'
 train_all_data = False # train a model using all avaiable data
 
 collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
@@ -35,9 +35,9 @@ class Sequence(nn.Module):
     def __init__(self,network_type) :
         super(Sequence, self).__init__()
         if network_type == 'LSTM':
-            num_features = 4
+            num_features = 3
             hidden_size = 50
-            self.innernet = nn.LSTM(input_size=num_features*28, hidden_size=hidden_size, num_layers=1, batch_first=True)
+            self.innernet = nn.LSTM(input_size=num_features*499, hidden_size=hidden_size, num_layers=1, batch_first=True)
         elif network_type == 'GRU':
             num_features = 4
             hidden_size = 50
@@ -91,7 +91,7 @@ def get_output(data_ds, model):
 
     return torch.tensor(labels_pred), torch.tensor(labels_true)
 
-if __name__ == '__main__':  ### 还没搞完
+if __name__ == '__main__':
     # set random seed to 0
     torch.manual_seed(2020)
     np.random.seed(2020)
@@ -103,9 +103,12 @@ if __name__ == '__main__':  ### 还没搞完
         torch.cuda.get_device_name()
     
     # Load data and create training and testing sets
-    training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
-    testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
+    # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
+    # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
+    training_data = create_tensor_dataset('DATA/tactile_dataset_block_train.csv')
+    testing_data = create_tensor_dataset('DATA/tactile_dataset_block_test.csv')
 
+    
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)
     test_dataloader = DataLoader(testing_data, batch_size=batch_size, shuffle= True)
     
@@ -124,7 +127,12 @@ if __name__ == '__main__':  ### 还没搞完
     # Training loop
     for epoch in range(n_epochs):
         running_loss = []
+        index_i = 0
         for X_batch, y_batch in train_dataloader:
+            index_i += 1
+            print(index_i)
+            print(X_batch.shape)
+            print(X_batch)
             optimizer.zero_grad()
             y_pred = model(X_batch)
             #torch.argmax(y_pred, dim=1)
