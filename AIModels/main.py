@@ -16,9 +16,13 @@ from torchmetrics import ConfusionMatrix
 from ncps.torch import LTC, CfC
 from ncps.wirings import AutoNCP
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 import sys
 sys.path.append("Process_Data")
 from Data2Models import create_tensor_dataset
+
 
 num_features = 4
 num_classes = 4
@@ -28,7 +32,7 @@ batch_size = 64
 lr = 0.001
 n_epochs = 100
 
-network_type = 'FCLTC'
+network_type = 'LSTM'
 train_all_data = False # train a model using all avaiable data
 
 # collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
@@ -160,6 +164,16 @@ if __name__ == '__main__':
 
         y_pred, y_train = get_output(training_data, model)
         print("on the train set: \n",confusionMatrix(y_train , y_pred))
+
+        #plot confusion matrix using seabon
+        confusionMatrixPlot = confusionMatrix.compute().numpy()
+        plt.figure()
+        label_classes = {0:"ST", 1:"DT", 2:"P", 3:"G"}
+        sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.title('Confusion Matrix')
+        plt.show()
 
 
 
