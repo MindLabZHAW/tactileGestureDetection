@@ -15,9 +15,9 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 print(f"main_path is {main_path}")
 
 # Parameters for the KNN models
-window_length = 500
+window_length = 200
 dof = 7
-features_num = 73  
+features_num = 4
 
 # Load the KNN model
 
