@@ -25,7 +25,7 @@ model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/A
 model = joblib.load(model_path)
 
 # Prepare window to collect features
-window = np.zeros([window_length, features_num])
+window = np.zeros([window_length, features_num * dof])
 
 # Initialize a list to store the results
 results = []
@@ -49,12 +49,12 @@ def contact_detection(data):
     # de 
 
     # Create new row and update the sliding window
-    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num))
+    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
     print(f"new row is {new_row}")
     window = np.append(window[1:, :], new_row, axis=0)
 
     # Flatten the window to create a feature vector for the model
-    feature_vector = window.flatten().reshape(1, -1)
+    feature_vector = window.mean(axis=0).reshape(1, -1)
 
     # Predict the touch_type using the KNN model
     touch_type_idx = model.predict(feature_vector)[0]
