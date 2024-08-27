@@ -1,3 +1,39 @@
+#!/usr/bin/env python3
+"""
+By Maryam Rezayati
+
+# How to run?
+
+#### 1st  Step: unlock robot
+	-turn on the robot (wait until it has a solid yellow)
+	-connect to the robot desk with the ID (172.16.0.2 or 192.168.15.33)
+	-unlock the robot
+	-the robot light should be blue
+	-unlock the robot and activate FCI
+
+#### 2nd Step: run frankapy
+
+open an terminal
+
+	conda activate frankapyenv
+	bash robotAPI/frankapy/bash_scripts/start_control_pc.sh -i localhost
+
+
+#### 3rd Step: run robot node
+
+open another terminal 
+
+	conda activate frankapyenv
+	source /opt/ros/noetic/setup.bash
+	source robotAPI/franka-interface/catkin_ws/devel/setup.bash --extend
+	source robotAPI/frankapy/catkin_ws/devel/setup.bash --extend
+	
+	$HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/frankaRobot/main.py
+
+# to chage publish rate of frankastate go to : 
+sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros_interface.launch
+"""
+
 import os
 import numpy as np
 import pandas as pd
@@ -59,10 +95,9 @@ def contact_detection(data):
     # de 
 
     # Create new row and update the sliding window
-    if method == 'KNN':
-        new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
-        print(f"new row is {new_row}")
-        window = np.append(window[1:, :], new_row, axis=0)
+    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
+    # print(f"new row is {new_row}")
+    window = np.append(window[1:, :], new_row, axis=0)
 
         # Flatten the window to create a feature vector for the model
         feature_vector = window.mean(axis=0).reshape(1, -1)
