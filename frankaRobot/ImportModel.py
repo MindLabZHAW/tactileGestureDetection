@@ -65,7 +65,7 @@ def get_output(data_ds, model):
 
 def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
 
-	model = Sequence(network_type = network_type, num_class = num_classes, num_features=num_features, time_window=time_window)
+	model = Sequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
 	checkpoint = torch.load(PATH)
 	model.load_state_dict(checkpoint["model_state_dict"])
 	
