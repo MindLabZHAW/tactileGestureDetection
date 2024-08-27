@@ -35,6 +35,7 @@ sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros
 """
 
 import os
+from threading import Event
 import numpy as np
 import pandas as pd
 
@@ -47,8 +48,10 @@ from std_msgs.msg import Float64
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from franka_interface_msgs.msg import RobotState
-from threading import Event
+
 from frankapy import FrankaArm
+
+from ImportModel import import_rnn_models
 
 # Set the main path
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
@@ -58,6 +61,7 @@ print(f"main_path is {main_path}")
 window_length = 200
 dof = 7
 features_num = 4
+classes_num = 5
 method = 'KNN'
 
 if method == 'KNN':
@@ -65,7 +69,11 @@ if method == 'KNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
+    model_path = 'AIModels/TrainedModels/LSTM_08_27_2024_19-46-06.pth'
+    model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
+elif method == 'Freq':
     model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
+    # model = 
 
 # Prepare window to collect features
 if method == 'KNN' or 'Freq':

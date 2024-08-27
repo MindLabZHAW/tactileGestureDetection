@@ -2,11 +2,15 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from ncps.torch import LTC, CfC
+from ncps.wirings import AutoNCP
+
 import sys
 
 
+
 class Sequence(nn.Module):
-    def __init__(self,network_type) :
+    def __init__(self, network_type, num_classes = 5, num_features=4, time_window=200) :
         super(Sequence, self).__init__()
         if network_type == 'LSTM':
             hidden_size = 50
@@ -59,10 +63,10 @@ def get_output(data_ds, model):
 
     return torch.tensor(labels_pred), torch.tensor(labels_true)
 
-def import_lstm_models(PATH:str, num_classes:int, network_type:str, model_name:str):
+def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
 
-	model = Sequence(num_class = num_classes, network_type = network_type)
-	checkpoint = torch.load(PATH+model_name)
+	model = Sequence(network_type = network_type, num_class = num_classes, num_features=num_features, time_window=time_window)
+	checkpoint = torch.load(PATH)
 	model.load_state_dict(checkpoint["model_state_dict"])
 	
 	print('***  Models loaded  ***')

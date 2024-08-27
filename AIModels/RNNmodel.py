@@ -24,6 +24,8 @@ import sys
 sys.path.append("Process_Data")
 from Data2Models import create_tensor_dataset
 
+main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
+path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
 
 num_features = 4
 num_classes = 5
@@ -41,7 +43,7 @@ train_all_data = False # train a model using all avaiable data
 # collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
 
 class Sequence(nn.Module):
-    def __init__(self,network_type) :
+    def __init__(self, network_type, num_classes=5, num_features=4, time_window=200) :
         super(Sequence, self).__init__()
         if network_type == 'LSTM':
             hidden_size = 50
@@ -108,8 +110,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset('DATA/tactile_dataset_block_train.csv')
-    testing_data = create_tensor_dataset('DATA/tactile_dataset_block_test.csv')
+    training_data = create_tensor_dataset(main_path + 'DATA/tactile_dataset_block_train.csv')
+    testing_data = create_tensor_dataset(main_path + 'DATA/tactile_dataset_block_test.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)
@@ -178,7 +180,7 @@ if __name__ == '__main__':
     # Save model
     named_tuple = time.localtime() 
     if input('do you want to save the data in trained models? (y/n):')=='y':
-        output_path = '../AIModels/TrainedModels'+str(time.strftime("_%m_%d_%Y_%H:%M:%S", named_tuple))+'.pth'
+        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + '.pth'
 
         torch.save({"model_state_dict": model.state_dict(),
                 "optimzier_state_dict": optimizer.state_dict(), "network_type": network_type,
