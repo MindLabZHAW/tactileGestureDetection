@@ -94,10 +94,11 @@ def contact_detection(data):
     # e = 
     # de 
 
-    # Create new row and update the sliding window
-    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
-    # print(f"new row is {new_row}")
-    window = np.append(window[1:, :], new_row, axis=0)
+    if method == 'KNN':
+        # Create new row and update the sliding window
+        new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
+        # print(f"new row is {new_row}")
+        window = np.append(window[1:, :], new_row, axis=0)
 
         # Flatten the window to create a feature vector for the model
         feature_vector = window.mean(axis=0).reshape(1, -1)
