@@ -40,6 +40,8 @@ import numpy as np
 import pandas as pd
 
 import joblib
+import torch
+from torchvision import transforms
 from scipy.signal import stft
 from scipy import signal as sg
 
@@ -62,21 +64,31 @@ window_length = 200
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'KNN'
+method = 'RNN'
 
 if method == 'KNN':
     # Load the KNN model
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
-    model_path = 'AIModels/TrainedModels/LSTM_08_27_2024_19-46-06.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_08_27_2024_19-46-06.pth'
     model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
+
+    # Set device for PyTorch models
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    if device.type == "cuda":
+        torch.cuda.get_device_name()
+    # Move PyTorch models to the selected device
+    model = model.to(device)
+    transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
     model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
     # model = 
 
+
 # Prepare window to collect features
-if method == 'KNN' or 'Freq':
+if method == 'KNN' or method ==' Freq':
     window = np.zeros([window_length, features_num * dof])
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
@@ -118,18 +130,27 @@ def contact_detection(data):
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
+
+
     elif method == 'RNN':
         new_block = np.column_stack((e_q,e_dq,tau_J,tau_ext))
-        print(f"new row is {new_row}")
+        # print(f"new block is {new_block}")
+        # print(f"front block is {window[:, features_num:].shape}")
         window = np.append(window[:, features_num:], new_block, axis=1)
 
-        feature_vector = window
-
-        touch_type_idx = model.predict(feature_vector)[0]
-        touch_type = label_classes_RNN[touch_type_idx]  # Get the actual touch type label
+        with torch.no_grad():
+            data_input = transform(window).to(device).float()
+            model_out = model(data_input)
+            model_out = model_out.detach()
+            output = torch.argmax(model_out, dim=1)
+        touch_type_idx = output.cpu().numpy()[0]
+        label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
+
+
     elif method == 'Freq':
         new_row = np.column_stack((e_q,e_dq,tau_J,tau_ext)).reshape(1, features_num * dof)
         print(f"new row is {new_row}")
