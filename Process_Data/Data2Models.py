@@ -205,6 +205,8 @@ class create_tensor_dataset(Dataset):
                 self.data_target.append(2)
             elif label_i == 'G':
                 self.data_target.append(3)
+            elif label_i == 'NC':
+                self.data_target.append(4)
             else:
                 self.data_target.append(-1)
             # resize to 7 lines data(7 joints)
