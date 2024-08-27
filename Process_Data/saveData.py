@@ -30,9 +30,9 @@ How to Run:
         source /opt/ros/noetic/setup.bash
         source robotAPI/franka-interface/catkin_ws/devel/setup.bash --extend
         source robotAPI/frankapy/catkin_ws/devel/setup.bash --extend
-        $HOME/miniconda/envs/frankapyenv/bin/python3 frankaRobot/saveDataNode.py
+        $HOME/miniconda/envs/frankapyenv/bin/python3 frankaRobot/saveDataNode.py  tactileGestureDetection/Process_Data/saveData.py
 
-        $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/saveData.py
+        $HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/saveData.py  
 """
 
 ## Import required libraries 
