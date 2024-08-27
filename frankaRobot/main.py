@@ -1,7 +1,11 @@
 import os
 import numpy as np
 import pandas as pd
+
 import joblib
+from scipy.signal import stft
+from scipy import signal as sg
+
 import rospy
 from std_msgs.msg import Float64
 from rospy_tutorials.msg import Floats
@@ -18,14 +22,20 @@ print(f"main_path is {main_path}")
 window_length = 200
 dof = 7
 features_num = 4
+method = 'KNN'
 
-# Load the KNN model
-
-model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
-model = joblib.load(model_path)
+if method == 'KNN':
+    # Load the KNN model
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
+    model = joblib.load(model_path)
+elif method == 'RNN':
+    model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
 
 # Prepare window to collect features
-window = np.zeros([window_length, features_num * dof])
+if method == 'KNN' or 'Freq':
+    window = np.zeros([window_length, features_num * dof])
+elif method == 'RNN':
+    window = np.zeros([dof, features_num * window_length])
 
 # Initialize a list to store the results
 results = []
@@ -49,20 +59,54 @@ def contact_detection(data):
     # de 
 
     # Create new row and update the sliding window
-    new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
-    print(f"new row is {new_row}")
-    window = np.append(window[1:, :], new_row, axis=0)
+    if method == 'KNN':
+        new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
+        print(f"new row is {new_row}")
+        window = np.append(window[1:, :], new_row, axis=0)
 
-    # Flatten the window to create a feature vector for the model
-    feature_vector = window.mean(axis=0).reshape(1, -1)
+        # Flatten the window to create a feature vector for the model
+        feature_vector = window.mean(axis=0).reshape(1, -1)
 
-    # Predict the touch_type using the KNN model
-    touch_type_idx = model.predict(feature_vector)[0]
-    touch_type = label_map_inv[touch_type_idx]  # Get the actual touch type label
+        # Predict the touch_type using the KNN model
+        touch_type_idx = model.predict(feature_vector)[0]
+        touch_type = label_map_inv[touch_type_idx]  # Get the actual touch type label
 
-    # Store the results
-    time_sec = int(rospy.get_time())
-    results.append([time_sec, touch_type])
+        # Store the results
+        time_sec = int(rospy.get_time())
+        results.append([time_sec, touch_type])
+    elif method == 'RNN':
+        new_block = np.column_stack((e_q,e_dq,tau_J,tau_ext))
+        print(f"new row is {new_row}")
+        window = np.append(window[:, features_num:], new_block, axis=1)
+
+        feature_vector = window
+
+        touch_type_idx = model.predict(feature_vector)[0]
+        touch_type = label_classes_RNN[touch_type_idx]  # Get the actual touch type label
+        # Store the results
+        time_sec = int(rospy.get_time())
+        results.append([time_sec, touch_type])
+    elif method == 'Freq':
+        new_row = np.column_stack((e_q,e_dq,tau_J,tau_ext)).reshape(1, features_num * dof)
+        print(f"new row is {new_row}")
+        window = np.append(window[1:, :], new_row, axis=0)
+        
+        # STFT 
+        fs = 100
+        nperseg = 64
+        noverlap = nperseg // 2
+        f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+        feature_vector = abs(Zxx)
+
+        # Predict the touch_type using the KNN model
+        touch_type_idx = model.predict(feature_vector)[0]
+        touch_type = label_map_inv[touch_type_idx]  # Get the actual touch type label
+
+        # Store the results
+        time_sec = int(rospy.get_time())
+        results.append([time_sec, touch_type])
+
+
 
     # Log prediction
     rospy.loginfo(f'Predicted touch_type: {touch_type}')
@@ -73,7 +117,7 @@ if __name__ == "__main__":
     # Load inverse label map for decoding predictions
     label_classes = ['DT','G','P','ST']  # Update according to your dataset
     label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
-
+    label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     event = Event()
     
     # Create robot controller instance

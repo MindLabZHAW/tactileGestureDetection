@@ -7,6 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 import random
+import time
 
 import torch
 import torch.nn as nn
@@ -25,7 +26,7 @@ from Data2Models import create_tensor_dataset
 
 
 num_features = 4
-num_classes = 4
+num_classes = 5
 time_window = 200
 
 batch_size = 64
@@ -38,7 +39,6 @@ train_all_data = False # train a model using all avaiable data
 # collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
 # collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
 # collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
-
 
 class Sequence(nn.Module):
     def __init__(self,network_type) :
@@ -168,14 +168,24 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = {0:"ST", 1:"DT", 2:"P", 3:"G"}
+        label_classes = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
         plt.title('Confusion Matrix')
         plt.show()
+    
+    # Save model
+    named_tuple = time.localtime() 
+    if input('do you want to save the data in trained models? (y/n):')=='y':
+        output_path = '../AIModels/TrainedModels'+str(time.strftime("_%m_%d_%Y_%H:%M:%S", named_tuple))+'.pth'
 
-
+        torch.save({"model_state_dict": model.state_dict(),
+                "optimzier_state_dict": optimizer.state_dict(), "network_type": network_type,
+                "n_epochs": n_epochs , "batch_size": batch_size, "num_features": num_features,
+                "num_classes": num_classes, "lr": lr}, output_path)
+        
+        print('model is saved successfully!')
 
 
 
