@@ -1,13 +1,5 @@
-import pandas as pd
-import numpy as np
-
-
-df = pd.read_csv('DATA/tactile_dataset_block_train.csv')
-
-grouped = df.groupby('block_id')
-
-lenth = []
-for block_id, group in grouped:
-    lenth.append(group.shape[0])
-print(len(lenth))
-
+import os
+main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
+path_name = os.path.dirname(os.path.abspath(__file__))+'/trainedModels/'
+print(main_path)
+print(path_name)

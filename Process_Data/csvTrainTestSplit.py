@@ -15,7 +15,9 @@ train_blocks, test_blocks = train_test_split(blocks, test_size=0.2, random_state
 
 # 合并各自的分组数据
 train_df = pd.concat(train_blocks).reset_index(drop=True)
+print('Size of train_df is ', train_df.shape)
 test_df = pd.concat(test_blocks).reset_index(drop=True)
+print('Size of test_df is ', test_df.shape)
 
 # 保存为新的CSV文件
 train_df.to_csv('DATA/tactile_dataset_block_train.csv', index=False)
