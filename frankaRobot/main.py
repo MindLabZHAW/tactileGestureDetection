@@ -71,7 +71,7 @@ if method == 'KNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_08_27_2024_19-46-06.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_08_30_2024_16-35-55.pth'
     model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
@@ -121,7 +121,7 @@ def contact_detection(data):
         window = np.append(window[1:, :], new_row, axis=0)
 
         # Flatten the window to create a feature vector for the model
-        feature_vector = window.mean(axis=0).reshape(1, -1)
+        feature_vector = window.mean(axis=0).reshape(1, -1)# modify 
 
         # Predict the touch_type using the KNN model
         touch_type_idx = model.predict(feature_vector)[0]
