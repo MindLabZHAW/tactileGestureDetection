@@ -121,7 +121,7 @@ def contact_detection(data):
         window = np.append(window[1:, :], new_row, axis=0)
 
         # Flatten the window to create a feature vector for the model
-        feature_vector = window.mean(axis=0).reshape(1, -1)
+        feature_vector = window.mean(axis=0).reshape(1, -1)# modify 
 
         # Predict the touch_type using the KNN model
         touch_type_idx = model.predict(feature_vector)[0]

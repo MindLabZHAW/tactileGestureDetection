@@ -133,6 +133,7 @@ if __name__ == '__main__':
     # Training loop
     for epoch in range(n_epochs):
         running_loss = []
+        index_i = 0
         for X_batch, y_batch in train_dataloader:
             # print(X_batch.shape)
             # print(X_batch)
