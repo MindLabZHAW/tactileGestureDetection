@@ -64,7 +64,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'RNN'
+method = 'KNN'
 
 if method == 'KNN':
     # Load the KNN model
@@ -101,34 +101,30 @@ def contact_detection(data):
     global window, results
 
     # Prepare data as done in training
-    e_q = np.array(data.q_d) - np.array(data.q)
-    e_dq = np.array(data.dq_d) - np.array(data.dq)
+    e = np.array(data.q_d) - np.array(data.q)
+    print(f" e is {e}")
+    de = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
-    # q = np.array(data.q)
-    # q_d = np.array(data.q_d)
-    # dq = np.array(dq)
-    # dq_d = np.array(dq_d)
-    # tau_J_d = np.array(tau_J_d)
-    # e = 
-    # de 
-
+  
     if method == 'KNN':
         window_features = []
 
         # Concatenate data for each joint in the window
         for joint in range(dof):  
             # Extract the joint data from the window
-            tau_J_joint = window[:, joint]  
-            tau_ext_joint = window[:, joint + dof]  
-            e_q_joint = window[:, joint + 2 * dof]  
-            e_dq_joint = window[:, joint + 3 * dof]  
+            e_joint = e[joint]
+            de_joint =de[joint]
+            tau_J_joint = tau_J[joint]  
+            tau_ext_joint = tau_ext[joint]  
             
             # Flatten and concatenate the joint data for the current joint
-            joint_data = np.concatenate([tau_J_joint, tau_ext_joint, e_q_joint, e_dq_joint])
+            joint_data = np.concatenate([e_joint,de_joint,tau_J_joint,tau_ext_joint])
+            print(f"joint_data is {joint_data}")
             window_features.extend(joint_data) 
-        
+    
+
         # Convert to numpy array and reshape to match the model's input requirements
         feature_vector = np.array(window_features).reshape(1, -1)  
 
@@ -142,7 +138,7 @@ def contact_detection(data):
 
 
     elif method == 'RNN':
-        new_block = np.column_stack((e_q,e_dq,tau_J,tau_ext))
+        new_block = np.column_stack((e,de,tau_J,tau_ext))
         # print(f"new block is {new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
         window = np.append(window[:, features_num:], new_block, axis=1)
@@ -161,7 +157,7 @@ def contact_detection(data):
 
 
     elif method == 'Freq':
-        new_row = np.column_stack((e_q,e_dq,tau_J,tau_ext)).reshape(1, features_num * dof)
+        new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
         print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
@@ -189,7 +185,7 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_classes = ['DT','G','P','ST','NC']  # Update according to your dataset
+    label_classes = ['DT','G','NC','P','ST'] 
     label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
     label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     event = Event()

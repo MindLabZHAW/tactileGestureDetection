@@ -12,7 +12,7 @@ import os
 
 
 # Load dataset
-data_path = '../DATA/labeled_window_dataset.csv'
+data_path = 'DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
 # Compute e_q and e_dq for q_d and q, dq_d and dq respectively
@@ -58,20 +58,21 @@ for window_id, group in grouped:
     # print(f"X_list is {X_list}")
     y_list.append(group['window_touch_type'].iloc[0])  # Assuming the label is the same for all rows in the block
 
-print(f"X_list is {X_list}") 
+# print(f"X_list is {X_list}") 
 
-print(f"y_list is {y_list}")
+# print(f"y_list is {y_list}")
 
 
 # Convert lists to numpy arrays
 X = np.array(X_list)
-print(f"X is {X} and length is {len(X)}")
+# print(f"X is {X} and length is {len(X)}")
 y = np.array(y_list)
-print(f"y is {y} and length is {len(y)}")
+# print(f"y is {y} and length is {len(y)}")
 
 #  Encode labels
 label_classes = np.unique(y)
 label_map = {label: idx for idx, label in enumerate(label_classes)}
+# print(label_map)
 y_encoded = np.array([label_map[label] for label in y])
 
 # Standardize the features
