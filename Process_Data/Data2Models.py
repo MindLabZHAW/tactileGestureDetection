@@ -210,7 +210,7 @@ class create_tensor_dataset(Dataset):
             else:
                 self.data_target.append(-1)
             # resize to 7 lines data(7 joints)
-            joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(28*3)
+            joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(28*4)
             for i, joint_colums in enumerate(joints_colums):
                 data_i = group.loc[:, joint_colums].values.flatten()
                 joints_data[i,:] = data_i
