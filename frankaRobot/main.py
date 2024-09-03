@@ -64,14 +64,14 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'KNN'
+method = 'RNN'
 
 if method == 'KNN':
     # Load the KNN model
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_08_30_2024_16-35-55.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_09_03_2024_19-44-26.pth'
     model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models

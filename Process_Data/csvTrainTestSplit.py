@@ -2,10 +2,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 #510个数据的时候是408+102
 # 读取原始CSV文件
-df = pd.read_csv('DATA/tactile_dataset_block.csv')
+df = pd.read_csv('DATA/labeled_window_dataset.csv')
 
 # 根据 block_id 进行分组
-grouped = df.groupby('block_id')
+grouped = df.groupby('window_id')
 
 # 将分组后的数据块列表化
 blocks = [group for _, group in grouped]
@@ -20,5 +20,5 @@ test_df = pd.concat(test_blocks).reset_index(drop=True)
 print('Size of test_df is ', test_df.shape)
 
 # 保存为新的CSV文件
-train_df.to_csv('DATA/tactile_dataset_block_train.csv', index=False)
-test_df.to_csv('DATA/tactile_dataset_block_test.csv', index=False)
+train_df.to_csv('DATA/labeled_window_dataset_train.csv', index=False)
+test_df.to_csv('DATA/labeled_window_dataset_test.csv', index=False)
