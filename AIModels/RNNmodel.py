@@ -29,11 +29,11 @@ path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
 
 num_features = 4
 num_classes = 5
-time_window = 200
+time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 50
+n_epochs = 100
 
 network_type = 'LSTM'
 train_all_data = False # train a model using all avaiable data
@@ -43,7 +43,7 @@ train_all_data = False # train a model using all avaiable data
 # collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
 
 class Sequence(nn.Module):
-    def __init__(self, network_type, num_classes=5, num_features=4, time_window=200) :
+    def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
         super(Sequence, self).__init__()
         if network_type == 'LSTM':
             hidden_size = 50
@@ -110,8 +110,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset(main_path + 'DATA/tactile_dataset_block_train.csv')
-    testing_data = create_tensor_dataset(main_path + 'DATA/tactile_dataset_block_test.csv')
+    training_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_train.csv')
+    testing_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_test.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)

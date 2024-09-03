@@ -154,7 +154,7 @@ class create_tensor_dataset_without_torque(Dataset):
 
 class create_tensor_dataset(Dataset):
     
-    def __init__(self, path='../contactInterpretation-main/dataset/realData/contact_detection_train.csv', num_classes=4, num_features=4):
+    def __init__(self, path='../contactInterpretation-main/dataset/realData/labeled_window_dataset.csv', num_classes=4, num_features=4):
         self.path = path
         self.num_classes = num_classes
         self.num_features = num_features
@@ -189,14 +189,14 @@ class create_tensor_dataset(Dataset):
 
         joints_colums = [joint0_colums, joint1_colums, joint2_colums, joint3_colums, joint4_colums, joint5_colums, joint6_colums]
 
-        grouped = df.groupby('block_id')
+        grouped = df.groupby('window_id')
 
         self.data_input = []
         self.data_target = []
 
         for block_id, group in grouped:
             # encoding label
-            label_i = group['touch_type'].iloc[0]
+            label_i = group['window_touch_type'].iloc[0]
             if label_i == 'ST':
                 self.data_target.append(0)
             elif label_i == 'DT':
@@ -210,7 +210,7 @@ class create_tensor_dataset(Dataset):
             else:
                 self.data_target.append(-1)
             # resize to 7 lines data(7 joints)
-            joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(499*3)
+            joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(28*3)
             for i, joint_colums in enumerate(joints_colums):
                 data_i = group.loc[:, joint_colums].values.flatten()
                 joints_data[i,:] = data_i
@@ -236,6 +236,6 @@ class create_tensor_dataset_stft(Dataset):
         return stft_matrix, label
 
 if __name__ == '__main__':
-    stftdata = create_tensor_dataset_stft()
-    print(stftdata.test_matrices)
-    print(stftdata.test_label)
+    rnndata = create_tensor_dataset('DATA/labeled_window_dataset_train.csv')
+    print(rnndata.data_input[1].shape)
+    # print(rnndata.data_target)
