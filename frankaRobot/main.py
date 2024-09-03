@@ -93,6 +93,7 @@ if method == 'KNN' or method ==' Freq':
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
 
+
 # Initialize a list to store the results
 results = []
 
@@ -169,7 +170,8 @@ def contact_detection(data):
         fs = 100
         nperseg = 64
         noverlap = nperseg // 2
-        f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+        # f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+        f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
         feature_vector = abs(Zxx)
 
         # Predict the touch_type using the KNN model
