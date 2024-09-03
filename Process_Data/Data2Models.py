@@ -223,15 +223,15 @@ class create_tensor_dataset(Dataset):
         # print(self.data_target)
 
 class create_tensor_dataset_stft(Dataset):
-    def __init__(self, stft_matrtices, labels):
-        self.stft_matrices = stft_matrtices
+    def __init__(self, stft_matrices, labels):
+        self.stft_matrices = stft_matrices
         self.labels = labels
 
     def __len__(self):
         return len(self.labels)
     
     def __getitem__(self, idx):
-        stft_matrix = torch.tensor(self.matrices[idx], dtype=torch.float32)
+        stft_matrix = torch.tensor(self.stft_matrices[idx], dtype=torch.float32).permute(2, 0, 1) # transfer to (channels, f, t)
         label = torch.tensor(self.labels[idx], dtype=torch.long)
         return stft_matrix, label
 

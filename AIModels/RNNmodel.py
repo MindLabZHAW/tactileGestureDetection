@@ -33,7 +33,7 @@ time_window = 200
 
 batch_size = 64
 lr = 0.001
-n_epochs = 100
+n_epochs = 50
 
 network_type = 'LSTM'
 train_all_data = False # train a model using all avaiable data
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
     # Build the model  
     model= Sequence(network_type)
-    model = model.double()
+    model = model.double() # Used to keep the input as double type 
     # Use Adam optimizer and CrossEntropyLoss as the loss function
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
@@ -161,6 +161,8 @@ if __name__ == '__main__':
         confusionMatrix = ConfusionMatrix(task = "multiclass", num_classes= num_classes)
 
         y_pred, y_test = get_output(testing_data, model)
+        print('y_pred ',y_pred)
+        print('y_test ',y_test)
         print("on the test set: \n",confusionMatrix(y_test , y_pred))
 
         y_pred, y_train = get_output(training_data, model)
@@ -169,7 +171,7 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+        label_classes = label_classes = ["ST", "DT", "P", "G", "NC"]
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
