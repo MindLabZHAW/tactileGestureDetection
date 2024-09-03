@@ -149,17 +149,20 @@ def contact_detection(data):
         print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
-        # STFT 
-        fs = 100
+        # STFT
+        fs = 200
         nperseg = 64
         noverlap = nperseg // 2
-        # f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
-        f, t, Zxx = stft(window, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
-        feature_vector = abs(Zxx)
+        stft_matrix = [] 
+        for feature_idx in range(window.shape[1]):
+            # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+            f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+            stft_matrix.append(np.abs(Zxx))
 
-        # Predict the touch_type using the KNN model
-        touch_type_idx = model.predict(feature_vector)[0]
-        touch_type = label_map_inv[touch_type_idx]  # Get the actual touch type label
+        # Predict the touch_type using the CNN Model
+        touch_type_idx = model(stft_matrix)
+        label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
 
         # Store the results
         time_sec = int(rospy.get_time())
