@@ -12,7 +12,7 @@ import os
 
 
 # Load dataset
-data_path = 'DATA/tactile_dataset_block.csv'
+data_path = '../DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
 # Compute e_q and e_dq for q_d and q, dq_d and dq respectively
@@ -24,23 +24,59 @@ e_dq = np.array(df[['dq_d0', 'dq_d1', 'dq_d2', 'dq_d3', 'dq_d4', 'dq_d5','dq_d6'
 tau_J = np.array(df[['tau_J0', 'tau_J1', 'tau_J2', 'tau_J3', 'tau_J4', 'tau_J5', 'tau_J6']])
 tau_ext = np.array(df[['tau_ext0', 'tau_ext1', 'tau_ext2', 'tau_ext3', 'tau_ext4', 'tau_ext5', 'tau_ext6']])
 
-# Concatenate e_q, e_dq, tau_J, and tau_ext into a feature matrix
-X_features = np.concatenate([tau_J,tau_ext,e_q, e_dq], axis=1)
+# Define columns corresponding to each joint
+joint_columns = {
+    0: ['e0', 'de0', 'tau_J0', 'tau_ext0'],
+    1: ['e1', 'de1', 'tau_J1', 'tau_ext1'],
+    2: ['e2', 'de2', 'tau_J2', 'tau_ext2'],
+    3: ['e3', 'de3', 'tau_J3', 'tau_ext3'],
+    4: ['e4', 'de4', 'tau_J4', 'tau_ext4'],
+    5: ['e5', 'de5', 'tau_J5', 'tau_ext5'],
+    6: ['e6', 'de6', 'tau_J6', 'tau_ext6'],
+}
 
-# Group by 'block_id' and calculate mean of the selected features
-grouped_X = pd.DataFrame(X_features).groupby(df['block_id']).mean().values
+# Initialize feature and label lists
+X_list = []
+y_list = []
 
-# Extract labels
-labels = df.groupby('block_id')['touch_type'].first()
+# Group data by 'block_id'
+grouped = df.groupby('window_id')
 
-# Encode labels
-label_classes = np.unique(labels)
+# Process each group
+for window_id, group in grouped:
+   
+    # print(f"group is {group}")
+    # Initialize an empty list to hold the features for this block
+    window_features = []
+    
+    # Concatenate data for each joint
+    for joint, cols in joint_columns.items():
+        joint_data = group.loc[:, cols].values.flatten()  # Flatten the joint data
+        window_features.extend(joint_data)  # Add the flattened data to block_features
+        
+    X_list.append(window_features)
+    # print(f"X_list is {X_list}")
+    y_list.append(group['window_touch_type'].iloc[0])  # Assuming the label is the same for all rows in the block
+
+print(f"X_list is {X_list}") 
+
+print(f"y_list is {y_list}")
+
+
+# Convert lists to numpy arrays
+X = np.array(X_list)
+print(f"X is {X} and length is {len(X)}")
+y = np.array(y_list)
+print(f"y is {y} and length is {len(y)}")
+
+#  Encode labels
+label_classes = np.unique(y)
 label_map = {label: idx for idx, label in enumerate(label_classes)}
-y_encoded = np.array([label_map[label] for label in labels])
+y_encoded = np.array([label_map[label] for label in y])
 
 # Standardize the features
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(grouped_X)
+X_scaled = scaler.fit_transform(X)
 
 # Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.3, random_state=42)
@@ -50,8 +86,8 @@ knn = KNeighborsClassifier()
 
 # Define hyperparameters grid
 param_grid = {
-    'n_neighbors': list(range(1, 21)),  # Search over 1 to 20 neighbors
-    'weights': ['uniform', 'distance']  # Search over 'uniform' and 'distance' weights
+    'n_neighbors': list(range(1, 21)),
+    'weights': ['uniform', 'distance']
 }
 
 # Initialize GridSearchCV
@@ -66,6 +102,7 @@ print(f'Best parameters: {best_params}')
 
 # Train KNN classifier with the best parameters
 best_knn = grid_search.best_estimator_
+
 
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'

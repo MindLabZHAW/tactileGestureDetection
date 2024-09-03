@@ -222,11 +222,20 @@ class create_tensor_dataset(Dataset):
         # print(self.data_input)
         # print(self.data_target)
 
+class create_tensor_dataset_stft(Dataset):
+    def __init__(self, stft_matrtices, labels):
+        self.stft_matrices = stft_matrtices
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.labels)
+    
+    def __getitem__(self, idx):
+        stft_matrix = torch.tensor(self.matrices[idx], dtype=torch.float32)
+        label = torch.tensor(self.labels[idx], dtype=torch.long)
+        return stft_matrix, label
+
 if __name__ == '__main__':
-    # data = pd.read_csv('../contactInterpretation-main/dataset/realData/contact_detection_train.csv')
-    data_ds = create_tensor_dataset('DATA/tactile_dataset_block_train.csv')
-    # data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=5, collision=True, localization=False, num_features=4)
-    for i in range(len(data_ds)):
-        data_sample = torch.tensor(data_ds.data_input[i])
-        print(data_sample.shape)
-        print(data_sample)
+    stftdata = create_tensor_dataset_stft()
+    print(stftdata.test_matrices)
+    print(stftdata.test_label)

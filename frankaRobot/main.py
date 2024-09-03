@@ -60,7 +60,7 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 print(f"main_path is {main_path}")
 
 # Parameters for the KNN models
-window_length = 200
+window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
@@ -115,17 +115,26 @@ def contact_detection(data):
     # de 
 
     if method == 'KNN':
-        # Create new row and update the sliding window
-        new_row = np.hstack((tau_J,tau_ext,e_q, e_dq)).reshape((1, features_num * dof))
-        # print(f"new row is {new_row}")
-        window = np.append(window[1:, :], new_row, axis=0)
+        window_features = []
 
-        # Flatten the window to create a feature vector for the model
-        feature_vector = window.mean(axis=0).reshape(1, -1)# modify 
+        # Concatenate data for each joint in the window
+        for joint in range(dof):  
+            # Extract the joint data from the window
+            tau_J_joint = window[:, joint]  
+            tau_ext_joint = window[:, joint + dof]  
+            e_q_joint = window[:, joint + 2 * dof]  
+            e_dq_joint = window[:, joint + 3 * dof]  
+            
+            # Flatten and concatenate the joint data for the current joint
+            joint_data = np.concatenate([tau_J_joint, tau_ext_joint, e_q_joint, e_dq_joint])
+            window_features.extend(joint_data) 
+        
+        # Convert to numpy array and reshape to match the model's input requirements
+        feature_vector = np.array(window_features).reshape(1, -1)  
 
         # Predict the touch_type using the KNN model
         touch_type_idx = model.predict(feature_vector)[0]
-        touch_type = label_map_inv[touch_type_idx]  # Get the actual touch type label
+        touch_type = label_map_inv[touch_type_idx]  
 
         # Store the results
         time_sec = int(rospy.get_time())
@@ -180,7 +189,7 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_classes = ['DT','G','P','ST']  # Update according to your dataset
+    label_classes = ['DT','G','P','ST','NC']  # Update according to your dataset
     label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
     label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     event = Event()
