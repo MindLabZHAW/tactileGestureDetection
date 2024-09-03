@@ -89,7 +89,7 @@ elif method == 'Freq':
 
 # Prepare window to collect features
 if method == 'KNN' or method ==' Freq':
-    window = np.zeros([window_length, features_num * dof])
+    window = np.zeros([1, window_length * features_num * dof])
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
 
@@ -102,34 +102,21 @@ def contact_detection(data):
 
     # Prepare data as done in training
     e = np.array(data.q_d) - np.array(data.q)
-    print(f" e is {e}")
+    # print("e is ", e)
     de = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
   
     if method == 'KNN':
-        window_features = []
-
-        # Concatenate data for each joint in the window
-        for joint in range(dof):  
-            # Extract the joint data from the window
-            e_joint = e[joint]
-            de_joint =de[joint]
-            tau_J_joint = tau_J[joint]  
-            tau_ext_joint = tau_ext[joint]  
-            
-            # Flatten and concatenate the joint data for the current joint
-            joint_data = np.concatenate([e_joint,de_joint,tau_J_joint,tau_ext_joint])
-            print(f"joint_data is {joint_data}")
-            window_features.extend(joint_data) 
-    
-
-        # Convert to numpy array and reshape to match the model's input requirements
-        feature_vector = np.array(window_features).reshape(1, -1)  
+        new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
+        # print(f"new data is {new_data}")
+        # print(f"new data size is{new_data.shape}")
+        
+        window = np.append(window[:,features_num * dof:], new_data, axis=1)
 
         # Predict the touch_type using the KNN model
-        touch_type_idx = model.predict(feature_vector)[0]
+        touch_type_idx = model.predict(window)[0]
         touch_type = label_map_inv[touch_type_idx]  
 
         # Store the results
