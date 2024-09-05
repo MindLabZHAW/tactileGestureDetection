@@ -53,7 +53,7 @@ from franka_interface_msgs.msg import RobotState
 
 from frankapy import FrankaArm
 
-from ImportModel import import_rnn_models
+from ImportModel import import_rnn_models, import_cnn_models
 
 # Set the main path
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
@@ -84,14 +84,24 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
     model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
-    # model = 
+    model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
+
+    # Set device for PyTorch models
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    if device.type == "cuda":
+        torch.cuda.get_device_name()
+    # Move PyTorch models to the selected device
+    model = model.to(device)
 
 
 # Prepare window to collect features
-if method == 'KNN' or method ==' Freq':
+if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
+elif method == 'Freq':
+    window = np.zeros([window_length, features_num * dof])
 
 
 # Initialize a list to store the results

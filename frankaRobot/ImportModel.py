@@ -9,9 +9,9 @@ import sys
 
 
 
-class Sequence(nn.Module):
+class RNNSequence(nn.Module):
     def __init__(self, network_type, num_classes = 5, num_features=4, time_window=200) :
-        super(Sequence, self).__init__()
+        super(RNNSequence, self).__init__()
         if network_type == 'LSTM':
             hidden_size = 50
             self.innernet = nn.LSTM(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
@@ -43,7 +43,7 @@ class Sequence(nn.Module):
         x = self.linear(x)
         return x
     
-def get_output(data_ds, model): 
+def get_rnn_output(data_ds, model): 
     labels_pred = []
     model.eval()
     with torch.no_grad():
@@ -63,9 +63,61 @@ def get_output(data_ds, model):
 
     return torch.tensor(labels_pred), torch.tensor(labels_true)
 
+class CNNSequence(nn.Module):
+    def __init__(self, network_type, num_classes):
+        super(CNNSequence, self).__init__()
+        if network_type == '2LCNN':
+            self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
+            self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
+            # self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
+            self.flatten = nn.Flatten()
+            self.fc1 = nn.Linear(32 * 6 * 4, 64)
+            self.fc2 = nn.Linear(64, num_classes)
+
+            self.num_classes = num_classes
+
+    def forward(self, input):
+        x = nn.functional.relu(self.conv1(input))
+        x = nn.functional.max_pool2d(x, (2,1))
+        x = nn.functional.relu(self.conv2(x))
+        x = nn.functional.max_pool2d(x, (2,1))
+        x = self.flatten(x)
+        x = nn.functional.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+    
+def get_cnn_output(data_ds, model):
+    labels_pred = []
+    model.eval()
+    with torch.no_grad():
+        for i in range(len(data_ds.labels)):
+            x, y = data_ds.__getitem__(i)
+            x = x.unsqueeze(0)
+            x = model(x)
+            x = x.squeeze()
+            labels_pred.append(x.detach().numpy())
+  
+    #convert list type to array
+    labels_pred = np.array(labels_pred)
+    labels_pred = labels_pred.argmax(axis=1)
+    labels_true = np.array(data_ds.labels[:])
+    labels_true = labels_true.astype('int64')
+
+    return torch.tensor(labels_pred), torch.tensor(labels_true)
+
+
 def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
 
-	model = Sequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
+	model = RNNSequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
+	checkpoint = torch.load(PATH)
+	model.load_state_dict(checkpoint["model_state_dict"])
+	
+	print('***  Models loaded  ***')
+	return model.eval()
+
+def import_cnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
+
+	model = CNNSequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
 	checkpoint = torch.load(PATH)
 	model.load_state_dict(checkpoint["model_state_dict"])
 	
