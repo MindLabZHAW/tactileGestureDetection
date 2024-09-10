@@ -13,7 +13,7 @@ from imblearn.combine import SMOTEENN
 
 
 # Load dataset
-data_path = 'DATA/labeled_window_dataset.csv'
+data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
 # Compute e_q and e_dq for q_d and q, dq_d and dq respectively

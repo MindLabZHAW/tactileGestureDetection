@@ -64,7 +64,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'Freq'
+method = 'RNN'
 
 if method == 'KNN':
     # Load the KNN model

@@ -16,7 +16,7 @@ import os
 
 
 # Load data
-data_path = '../DATA/labeled_window_dataset.csv'
+data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
  # Define columns corresponding to each joint
