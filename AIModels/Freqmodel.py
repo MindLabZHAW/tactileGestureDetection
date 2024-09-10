@@ -90,7 +90,7 @@ if __name__ == '__main__':
     labels_str = loaded_data['labels']
     str2int = {"ST": 0, "DT": 1, "P": 2, "G": 3, "NC": 4}
     labels = [str2int[string] for string in labels_str]
-    block_ids = loaded_data['block_ids']
+    window_ids = loaded_data['window_ids']
     train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
     # print(train_matrices)
 
