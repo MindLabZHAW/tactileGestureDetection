@@ -30,7 +30,7 @@ train_all_data = False
 
 
 class CNNSequence(nn.Module):
-    def __init__(self, network_type):
+    def __init__(self, network_type, num_classes):
         super(CNNSequence, self).__init__()
         if network_type == '2LCNN':
             self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
@@ -39,6 +39,8 @@ class CNNSequence(nn.Module):
             self.flatten = nn.Flatten()
             self.fc1 = nn.Linear(32 * 6 * 4, 64)
             self.fc2 = nn.Linear(64, num_classes)
+
+            self.num_classes = num_classes
 
     def forward(self, input):
         x = nn.functional.relu(self.conv1(input))
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model
-    model = CNNSequence(network_type)
+    model = CNNSequence(network_type=network_type, num_classes=num_classes)
     # Use Adam optimizer and CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
