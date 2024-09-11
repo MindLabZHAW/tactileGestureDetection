@@ -83,7 +83,7 @@ elif method == 'RNN':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = 'AIModels/TrainedModels/trained_knn_model.pkl'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_03_2024_17-29-15.pth'
     model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
 
     # Set device for PyTorch models

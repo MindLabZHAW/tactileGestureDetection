@@ -181,7 +181,8 @@ if __name__ == '__main__':
     # Save model
     named_tuple = time.localtime() 
     if input('do you want to save the data in trained models? (y/n):')=='y':
-        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + '.pth'
+        tag = input('Please put a tag if needed: ')
+        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + tag+ '.pth'
 
         torch.save({"model_state_dict": model.state_dict(),
                 "optimzier_state_dict": optimizer.state_dict(), "network_type": network_type,

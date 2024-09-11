@@ -115,9 +115,9 @@ def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features
 	print('***  Models loaded  ***')
 	return model.eval()
 
-def import_cnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
+def import_cnn_models(PATH:str, network_type:str, num_classes:int):
 
-	model = CNNSequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
+	model = CNNSequence(network_type = network_type, num_classes = num_classes)
 	checkpoint = torch.load(PATH)
 	model.load_state_dict(checkpoint["model_state_dict"])
 	
