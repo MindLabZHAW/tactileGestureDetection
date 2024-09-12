@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 #510个数据的时候是408+102
+# 13522+3381(0910新数据window切割)
 # 读取原始CSV文件
 df = pd.read_csv('DATA/labeled_window_dataset.csv')
 
