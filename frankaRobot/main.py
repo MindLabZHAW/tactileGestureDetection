@@ -68,11 +68,11 @@ method = 'RNN'
 
 if method == 'KNN':
     # Load the KNN model
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/trained_knn_model.pkl'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/SMOTEENN_KNN.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/LSTM_09_03_2024_19-44-26.pth'
-    model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_12_2024_15-27-52NewData.pth'
+    model = import_rnn_models(model_path, network_type='NCPCfC', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -106,10 +106,14 @@ elif method == 'Freq':
 
 # Initialize a list to store the results
 results = []
+# Create message for publishing model output (will be used in saceDataNode.py)
+model_msg = Floats()
 
 # Callback function for contact detection and prediction
 def contact_detection(data):
-    global window, results
+    global window, results, big_time_digits
+
+    start_time = rospy.get_time()
 
     # Prepare data as done in training
     e = np.array(data.q_d) - np.array(data.q)
@@ -118,7 +122,6 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
-  
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
         # print(f"new data is {new_data}")
@@ -181,7 +184,15 @@ def contact_detection(data):
 
 
     # Log prediction
+    detection_duration  = rospy.get_time() - start_time
     rospy.loginfo(f'Predicted touch_type: {touch_type}')
+    
+    start_time = np.array(start_time).tolist()
+    time_sec = int(start_time)
+    time_nsec = start_time-time_sec
+    model_msg.data = np.append(np.array([time_sec-big_time_digits, time_nsec, detection_duration, touch_type_idx], dtype=np.complex128), np.hstack(window))
+    # print(model_msg)
+    model_pub.publish(model_msg)
 
 if __name__ == "__main__":
     global publish_output, big_time_digits
@@ -195,8 +206,12 @@ if __name__ == "__main__":
     # Create robot controller instance
     fa = FrankaArm()
 
+    scale = 1000000
+    big_time_digits = int(rospy.get_time()/scale)*scale
+
     # Subscribe to robot data topic for contact detection module
     rospy.Subscriber(name="/robot_state_publisher_node_1/robot_state", data_class=RobotState, callback=contact_detection)
+    model_pub = rospy.Publisher("/model_output", numpy_msg(Floats), queue_size= 1)
 
     # Run the ROS event loop
     rospy.spin()
