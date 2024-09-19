@@ -64,11 +64,11 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'RNN'
+method = 'KNN'
 
 if method == 'KNN':
     # Load the KNN model
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/SMOTEENN_KNN.pkl'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_12_2024_15-27-52NewData.pth'

@@ -1,5 +1,4 @@
 /DATA/
-/data/
-/dataset/
 .DS_Store
-AIModels/TrainedModels
+/AIModels/TrainedModels
+/dataset
