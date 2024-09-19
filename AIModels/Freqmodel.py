@@ -36,8 +36,8 @@ class CNNSequence(nn.Module):
             self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
             self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
             # self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
-            self.flatten = nn.Flatten()
-            self.fc1 = nn.Linear(32 * 6 * 4, 64)
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc1 = nn.Linear(32 * 5 * 5, 64)
             self.fc2 = nn.Linear(64, num_classes)
         
         if network_type == '3DCNN':
@@ -51,11 +51,11 @@ class CNNSequence(nn.Module):
     def forward(self, input):
         x = nn.functional.relu(self.conv1(input))
         # print("After conv1:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (2,1))
+        x = nn.functional.max_pool2d(x, (1,2))
         # print("After MP1:", x.shape)  # 检查形状
         x = nn.functional.relu(self.conv2(x))
         # print("After conv2:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (2,1))
+        x = nn.functional.max_pool2d(x, (1,2))
         # print("After MP1:", x.shape)  # 检查形状
         # x = nn.functional.relu(self.conv3(x))
         # x = nn.functional.max_pool2d(x, 2)

@@ -64,7 +64,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'KNN'
+method = 'RNN'
 
 if method == 'KNN':
     # Load the KNN model
@@ -83,7 +83,7 @@ elif method == 'RNN':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_03_2024_17-29-15.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_19_2024_17-48-27.pth'
     model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
@@ -93,6 +93,7 @@ elif method == 'Freq':
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
     model = model.to(device)
+    transform = transforms.Compose([transforms.ToTensor()])
 
 
 # Prepare window to collect features
@@ -148,7 +149,9 @@ def contact_detection(data):
             data_input = transform(window).to(device).float()
             model_out = model(data_input)
             model_out = model_out.detach()
+            # print(model_out)
             output = torch.argmax(model_out, dim=1)
+            # print(output)
         touch_type_idx = output.cpu().numpy()[0]
         label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
@@ -159,21 +162,29 @@ def contact_detection(data):
 
     elif method == 'Freq':
         new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
-        print(f"new row is {new_row}")
+        # print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
         # STFT
         fs = 200
-        nperseg = 64
-        noverlap = nperseg // 2
-        stft_matrix = [] 
+        nperseg = 16
+        noverlap = nperseg - 1
+        data_matrix = [] 
         for feature_idx in range(window.shape[1]):
             # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
             f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
-            stft_matrix.append(np.abs(Zxx))
+            data_matrix.append(np.abs(Zxx))
 
         # Predict the touch_type using the CNN Model
-        touch_type_idx = model(stft_matrix)
+        with torch.no_grad():
+            stft_matrix = np.stack(data_matrix, axis=-1)
+            stft_matrix_input = transform(stft_matrix).to(device).float()
+            model_out = model(stft_matrix_input)
+            model_out = model_out.detach()
+            # print(model_out)
+            output = torch.argmax(model_out)
+            # print(output)
+        touch_type_idx = int(output.cpu())
         label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
 

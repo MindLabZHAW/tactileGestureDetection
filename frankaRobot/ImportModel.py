@@ -69,19 +69,22 @@ class CNNSequence(nn.Module):
         if network_type == '2LCNN':
             self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
             self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
-            # self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
-            self.flatten = nn.Flatten()
-            self.fc1 = nn.Linear(32 * 6 * 4, 64)
+            self.fc1 = nn.Linear(32 * 5 * 5, 64)
             self.fc2 = nn.Linear(64, num_classes)
 
             self.num_classes = num_classes
 
     def forward(self, input):
         x = nn.functional.relu(self.conv1(input))
-        x = nn.functional.max_pool2d(x, (2,1))
+        # print("After conv1:", x.shape)  # 检查形状
+        x = nn.functional.max_pool2d(x, (1,2))
+        # print("After MP1:", x.shape)  # 检查形状
         x = nn.functional.relu(self.conv2(x))
-        x = nn.functional.max_pool2d(x, (2,1))
-        x = self.flatten(x)
+        # print("After conv2:", x.shape)  # 检查形状
+        x = nn.functional.max_pool2d(x, (1,2))
+        # print("After MP1:", x.shape)  # 检查形状
+        x = torch.flatten(x) # without batch so flatten from dimension 0
+        # print("After Flatten:", x.shape)  # 检查形状
         x = nn.functional.relu(self.fc1(x))
         x = self.fc2(x)
         return x
