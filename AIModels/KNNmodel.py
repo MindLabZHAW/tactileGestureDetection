@@ -71,8 +71,9 @@ y = np.array(y_list)
 # print(f"y is {y} and length is {len(y)}")
 
 #  Encode labels
-label_classes = np.unique(y)
-label_map = {label: idx for idx, label in enumerate(label_classes)}
+label_classes = {"ST":0, "DT":1, "P":2, "G":3, "NC":4}
+# print(f"label_classes is {label_classes}")
+label_map = {key:value for key, value in label_classes.items()}
 # print(label_map)
 y_encoded = np.array([label_map[label] for label in y])
 

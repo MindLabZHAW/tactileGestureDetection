@@ -209,8 +209,7 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_classes = ['DT','G','NC','P','ST'] 
-    label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
+    label_map_inv = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     event = Event()
     
