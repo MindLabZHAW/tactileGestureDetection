@@ -185,7 +185,7 @@ def contact_detection(data):
             output = torch.argmax(model_out)
             # print(output)
         touch_type_idx = int(output.cpu())
-        label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+        label_map_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
 
         # Store the results
@@ -209,8 +209,8 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_map_inv = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
-    label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+    label_map_inv = {0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+    label_classes_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
     event = Event()
     
     # Create robot controller instance
