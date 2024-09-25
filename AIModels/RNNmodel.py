@@ -171,7 +171,7 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = label_classes = ["ST", "DT", "P", "G", "NC"]
+        label_classes = label_classes = ["NC", "ST", "DT", "P", "G"]
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')

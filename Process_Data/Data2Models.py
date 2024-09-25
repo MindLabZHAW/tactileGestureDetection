@@ -197,15 +197,15 @@ class create_tensor_dataset(Dataset):
         for block_id, group in grouped:
             # encoding label
             label_i = group['window_touch_type'].iloc[0]
-            if label_i == 'ST':
+            if label_i == 'NC':
                 self.data_target.append(0)
-            elif label_i == 'DT':
+            elif label_i == 'ST':
                 self.data_target.append(1)
-            elif label_i == 'P':
+            elif label_i == 'DT':
                 self.data_target.append(2)
-            elif label_i == 'G':
+            elif label_i == 'P':
                 self.data_target.append(3)
-            elif label_i == 'NC':
+            elif label_i == 'G':
                 self.data_target.append(4)
             else:
                 self.data_target.append(-1)

@@ -42,6 +42,9 @@ import pandas as pd
 import joblib
 import torch
 from torchvision import transforms
+
+from collections import Counter
+
 from scipy.signal import stft
 from scipy import signal as sg
 
@@ -64,7 +67,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'RNN'
+method = 'KNN'
 
 if method == 'KNN':
     # Load the KNN model
@@ -83,7 +86,7 @@ elif method == 'RNN':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_19_2024_17-48-27.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_03_2024_17-29-15.pth'
     model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
@@ -93,14 +96,15 @@ elif method == 'Freq':
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
     model = model.to(device)
-    transform = transforms.Compose([transforms.ToTensor()])
 
 
 # Prepare window to collect features
 if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
 elif method == 'RNN':
-    window = np.zeros([dof, features_num * window_length])
+    window1 = np.zeros([dof, features_num * window_length])
+    window2 = np.zeros([dof, features_num * window_length])
+    window3 = np.zeros([dof, features_num * window_length])
 elif method == 'Freq':
     window = np.zeros([window_length, features_num * dof])
 
@@ -143,18 +147,34 @@ def contact_detection(data):
         new_block = np.column_stack((e,de,tau_J,tau_ext))
         # print(f"new block is {new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
-        window = np.append(window[:, features_num:], new_block, axis=1)
+        window3 = window2
+        window2 = window1
+        window1 = np.append(window1[:, features_num:], new_block, axis=1)
 
         with torch.no_grad():
-            data_input = transform(window).to(device).float()
-            model_out = model(data_input)
-            model_out = model_out.detach()
-            # print(model_out)
-            output = torch.argmax(model_out, dim=1)
-            # print(output)
-        touch_type_idx = output.cpu().numpy()[0]
-        label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
-        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
+            # Prepare inputs
+            data_input1 = transform(window1).to(device).float()
+            data_input2 = transform(window2).to(device).float()
+            data_input3 = transform(window3).to(device).float()
+            # Calculate model outputs for each window
+            model_out1 = model(data_input1).detach()
+            model_out2 = model(data_input2).detach()
+            model_out3 = model(data_input3).detach()
+            # Get predictions for each window 
+            output1 = torch.argmax(model_out1, dim=1)
+            output2 = torch.argmax(model_out2, dim=1)
+            output3 = torch.argmax(model_out3, dim=1)
+        # Convert outputs to CPU numpy arrays
+        output1_idx = output1.cpu().numpy()[0]
+        output2_idx = output2.cpu().numpy()[0]
+        output3_idx = output3.cpu().numpy()[0]
+        # Collect outputs
+        outputs_idx = [output1_idx, output2_idx, output3_idx]
+        # Perform majority voting
+        voted_touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
+        # Project the int index to string output
+        label_map_RNN = {0:"NC", 1:"ST", 2:"DT", 3:"P", 4:"G"}
+        touch_type = label_map_RNN[voted_touch_type_idx]  # Get the actual touch type label
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
@@ -162,29 +182,21 @@ def contact_detection(data):
 
     elif method == 'Freq':
         new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
-        # print(f"new row is {new_row}")
+        print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
         # STFT
         fs = 200
-        nperseg = 16
-        noverlap = nperseg - 1
-        data_matrix = [] 
+        nperseg = 64
+        noverlap = nperseg // 2
+        stft_matrix = [] 
         for feature_idx in range(window.shape[1]):
             # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
             f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
-            data_matrix.append(np.abs(Zxx))
+            stft_matrix.append(np.abs(Zxx))
 
         # Predict the touch_type using the CNN Model
-        with torch.no_grad():
-            stft_matrix = np.stack(data_matrix, axis=-1)
-            stft_matrix_input = transform(stft_matrix).to(device).float()
-            model_out = model(stft_matrix_input)
-            model_out = model_out.detach()
-            # print(model_out)
-            output = torch.argmax(model_out)
-            # print(output)
-        touch_type_idx = int(output.cpu())
+        touch_type_idx = model(stft_matrix)
         label_map_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
 
@@ -209,7 +221,8 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_map_inv = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
+    label_classes = ['DT','G','NC','P','ST'] 
+    label_map_inv = {idx: label for idx, label in enumerate(label_classes)}
     label_classes_RNN = {0:"ST", 1:"DT", 2:"P", 3:"G", 4:"NC"}
     event = Event()
     
