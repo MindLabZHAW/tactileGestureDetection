@@ -94,7 +94,7 @@ if __name__ == '__main__':
     loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
     stft_matrices = np.array(loaded_data['stft_matrices'])
     labels_str = loaded_data['labels']
-    str2int = {"ST": 0, "DT": 1, "P": 2, "G": 3, "NC": 4}
+    str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
     labels = [str2int[string] for string in labels_str]
     window_ids = loaded_data['window_ids']
     train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = ["ST", "DT", "P", "G", "NC"]
+        label_classes = ["NC", "ST", "DT", "P", "G"]
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')
