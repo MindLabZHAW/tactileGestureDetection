@@ -40,12 +40,6 @@ class CNNSequence(nn.Module):
             self.fc1 = nn.Linear(32 * 5 * 5, 64)
             self.fc2 = nn.Linear(64, num_classes)
         
-        if network_type == '3DCNN':
-            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(28, 3, 3), stride=1, padding=0)
-            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(1, 3, 3), stride=1, padding=0)
-            self.global_avg_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
-            self.fc = nn.Linear(32, num_classes)
-        
         self.num_classes = num_classes
 
     def forward(self, input):

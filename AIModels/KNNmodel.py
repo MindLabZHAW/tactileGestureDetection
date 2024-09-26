@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import joblib 
 import os
 from imblearn.combine import SMOTEENN
+from imblearn.under_sampling import RandomUnderSampler
 
 
 # Load dataset
@@ -84,6 +85,8 @@ X_scaled = scaler.fit_transform(X)
 # Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.3, random_state=42)
 
+undersampler = RandomUnderSampler(random_state=42)
+X_resampled,y_resampled = undersampler.fit_resample(X_train,y_train)
 # smote_enn = SMOTEENN(random_state=42)
 # X_resampled, y_resampled = smote_enn.fit_resample(X_train, y_train)
 
@@ -113,7 +116,7 @@ best_knn = grid_search.best_estimator_
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
 os.makedirs(folder_path, exist_ok=True)
-model_path = folder_path + 'KNN.pkl'
+model_path = folder_path + 'KNN_undersampling.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
 

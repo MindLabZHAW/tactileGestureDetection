@@ -35,7 +35,7 @@ batch_size = 64
 lr = 0.001
 n_epochs = 100
 
-network_type = 'LSTM'
+network_type = 'NCPCfC'
 train_all_data = False # train a model using all avaiable data
 
 # collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001

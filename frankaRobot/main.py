@@ -71,11 +71,12 @@ method = 'Freq'
 
 if method == 'KNN':
     # Load the KNN model
-    model_path = '/home/mindlab/weimindeqing/tactileGestureDetection/AIModels/TrainedModels/KNN.pkl'
+    # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_hybried.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/LSTM_09_25_2024_14-20-29NewProjDict.pth'
-    model = import_rnn_models(model_path, network_type='LSTM', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_26_2024_15-03-37MainPhaseKickOffMeeting.pth'
+    model = import_rnn_models(model_path, network_type='NCPCfC', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -86,8 +87,8 @@ elif method == 'RNN':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_25_2024_16-15-32.pth'
-    model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_09_26_2024_14-38-29.pth'
+    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
