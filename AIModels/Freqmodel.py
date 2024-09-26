@@ -25,7 +25,7 @@ time_window = 200
 batch_size = 64
 lr = 0.001
 n_epochs = 100
-network_type = '2LCNN'
+network_type = '2L3DCNN'
 train_all_data = False
 
 
@@ -66,6 +66,32 @@ class CNNSequence(nn.Module):
         x = self.fc2(x)
         return x
     
+class CNNSequence3D(nn.Module):
+    def __init__(self, network_type, num_classes):
+        super(CNNSequence3D, self).__init__()
+        if network_type == '2L3DCNN':
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(28, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(1, 3, 3), stride=1, padding=0)
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc = nn.Linear(32, num_classes)
+        
+        self.num_classes = num_classes
+
+    def forward(self, input):
+        x = input.unsqueeze(1)
+        x = nn.functional.relu(self.conv1(x))
+        # print("After conv1:", x.shape)  # 检查形状
+        x = nn.functional.relu(self.conv2(x))
+        # print("After conv2:", x.shape)  # 检查形状
+        x = self.global_max_pool(x)
+        # print("After MP1:", x.shape)  # 检查形状
+        x = self.flatten(x)
+        # x = x.view(x.size(0), -1)
+        # print("After Flatten:", x.shape)  # 检查形状
+        x = self.fc(x)
+        return x
+
 def get_output(data_ds, model):
     labels_pred = []
     model.eval()
@@ -117,7 +143,10 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model
-    model = CNNSequence(network_type=network_type, num_classes=num_classes)
+    if network_type == "2LCNN":
+        model = CNNSequence(network_type=network_type, num_classes=num_classes)
+    elif network_type == '2L3DCNN':
+        model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
     # Use Adam optimizer and CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
