@@ -17,7 +17,7 @@ import joblib
 import os
 
 # Load data
-data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/labeled_window_dataset.csv'
+data_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
  # Define columns corresponding to each joint
@@ -30,11 +30,6 @@ joint_columns = {
     5: ['e5', 'de5', 'tau_J5', 'tau_ext5'],
     6: ['e6', 'de6', 'tau_J6', 'tau_ext6'],
 }
-""" # function to apply DWT and return feature vector
-def apply_dwt(data,wavelet = 'db1'):
-    coeffs = pywt.wavedec(data,wavelet,level=4)
-    features = np.concatenate([np.ravel(c) for c in coeffs])
-    return features """
 
 
 # Initialize feature and label lists
@@ -105,7 +100,7 @@ best_knn = grid_search_knn.best_estimator_
 
 svm = SVC()
 param_grid_svc = {
-    'C':[0.1,1,10,100],
+    'C':[0.1,1,10],
     'gamma':[1,0.1,0.01,0.001,'scale'],
     'kernel':['rbf','linear']
 }
@@ -132,11 +127,11 @@ best_rf = grid_search_rf.best_estimator_
 
 rf_svm_grid_search = VotingClassifier(estimators=[('svm',best_svm),('rf',best_rf),('knn',best_knn)],voting = 'hard')
 
-rf_svm_grid_search.fit(X_train,y_train)
+rf_svm_grid_search.fit(X_resampled,y_resampled)
 
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
 os.makedirs(folder_path, exist_ok=True)
-model_path = folder_path + 'KNN_hybried.pkl'
+model_path = folder_path + 'KNN_SVM__RF_flatten_undersampling_hybried.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')

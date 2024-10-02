@@ -71,22 +71,50 @@ class CNNSequence(nn.Module):
             self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
             self.fc1 = nn.Linear(32 * 5 * 5, 64)
             self.fc2 = nn.Linear(64, num_classes)
+        elif network_type == '3LCNN':
+            self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
+            self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
+            self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc1 = nn.Linear(64* 14 * 9, 128)
+            self.fc2 = nn.Linear(128, num_classes)
 
-            self.num_classes = num_classes
+        self.network_type = network_type
+        self.num_classes = num_classes
 
     def forward(self, input):
-        x = nn.functional.relu(self.conv1(input))
-        # print("After conv1:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (1,2))
-        # print("After MP1:", x.shape)  # 检查形状
-        x = nn.functional.relu(self.conv2(x))
-        # print("After conv2:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (1,2))
-        # print("After MP1:", x.shape)  # 检查形状
-        x = torch.flatten(x) # without batch so flatten from dimension 0
-        # print("After Flatten:", x.shape)  # 检查形状
-        x = nn.functional.relu(self.fc1(x))
-        x = self.fc2(x)
+        if self.network_type == '2LCNN':
+            x = nn.functional.relu(self.conv1(input))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.max_pool2d(x, (1,2))
+            # print("After MP1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = nn.functional.max_pool2d(x, (1,2))
+            # print("After MP1:", x.shape)  # 检查形状
+            x = torch.flatten(x) # without batch so flatten from dimension 0
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.fc1(x))
+            x = self.fc2(x)
+        elif self.network_type == '3LCNN':
+            x = nn.functional.relu(self.conv1(input))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 2))
+            # print("After MP1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 1))
+            # print("After MP2:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv3(x))
+            # print("After conv3:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 1))
+            # print("After MP3:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.fc1(x))
+            x = self.fc2(x)
+
         return x
     
 class CNNSequence3D(nn.Module):
@@ -146,7 +174,7 @@ def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features
 
 def import_cnn_models(PATH:str, network_type:str, num_classes:int):
     
-    if network_type == '2LCNN':
+    if network_type == '2LCNN' or '3LCNN':
         model = CNNSequence(network_type = network_type, num_classes = num_classes)
     elif network_type == '2L3DCNN':
         model = CNNSequence3D(network_type = network_type, num_classes = num_classes)

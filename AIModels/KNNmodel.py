@@ -14,17 +14,9 @@ from imblearn.under_sampling import RandomUnderSampler
 
 
 # Load dataset
-data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/labeled_window_dataset.csv'
+data_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/DATA/labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
-# Compute e_q and e_dq for q_d and q, dq_d and dq respectively
-e_q = np.array(df[['q_d0', 'q_d1', 'q_d2', 'q_d3', 'q_d4', 'q_d5','q_d6']]) - np.array(df[['q0', 'q1', 'q2', 'q3', 'q4', 'q5','q6']])
-e_dq = np.array(df[['dq_d0', 'dq_d1', 'dq_d2', 'dq_d3', 'dq_d4', 'dq_d5','dq_d6']]) - np.array(df[['dq0', 'dq1', 'dq2', 'dq3', 'dq4', 'dq5','dq6']])
-
-# Combine all required features into a single DataFrame
-# tau_J and tau_ext are assumed to be columns in df, each containing 6 subcolumns (tau_J0 - tau_J5, tau_ext0 - tau_ext5)
-tau_J = np.array(df[['tau_J0', 'tau_J1', 'tau_J2', 'tau_J3', 'tau_J4', 'tau_J5', 'tau_J6']])
-tau_ext = np.array(df[['tau_ext0', 'tau_ext1', 'tau_ext2', 'tau_ext3', 'tau_ext4', 'tau_ext5', 'tau_ext6']])
 
 # Define columns corresponding to each joint
 joint_columns = {
@@ -103,7 +95,7 @@ param_grid = {
 grid_search = GridSearchCV(knn, param_grid, cv=5, scoring='accuracy')
 
 # Fit GridSearchCV
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_resampled, y_resampled)
 
 # Get the best parameters
 best_params = grid_search.best_params_
@@ -116,7 +108,7 @@ best_knn = grid_search.best_estimator_
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
 os.makedirs(folder_path, exist_ok=True)
-model_path = folder_path + 'KNN_undersampling.pkl'
+model_path = folder_path + 'KNN_flatten_undersampling.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
 

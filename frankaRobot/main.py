@@ -28,7 +28,7 @@ open another terminal
 	source robotAPI/franka-interface/catkin_ws/devel/setup.bash --extend
 	source robotAPI/frankapy/catkin_ws/devel/setup.bash --extend
 	
-	$HOME/miniconda/envs/frankapyenv/bin/python3 tactileGestureDetection/frankaRobot/main.py
+	$HOME/miniconda/envs/frankapyenv/bin/python3 ../tactileGestureDetection/frankaRobot/main.py
 
 # to chage publish rate of frankastate go to : 
 sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros_interface.launch
@@ -47,6 +47,7 @@ from collections import Counter
 
 from scipy.signal import stft
 from scipy import signal as sg
+import pywt
 
 import rospy
 from std_msgs.msg import Float64
@@ -72,7 +73,7 @@ method = 'Freq'
 if method == 'KNN':
     # Load the KNN model
     # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_hybried.pkl'
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/KNN_SVM__RF_flatten_undersampling_hybried.pkl'
     model = joblib.load(model_path)
 elif method == 'RNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_26_2024_15-03-37MainPhaseKickOffMeeting.pth'
@@ -87,8 +88,8 @@ elif method == 'RNN':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_09_26_2024_14-38-29.pth'
-    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_25_2024_16-15-32.pth'
+    model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -187,15 +188,25 @@ def contact_detection(data):
         # print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
-        # STFT
-        fs = 200
-        nperseg = 16
-        noverlap = nperseg - 1
-        data_matrix = [] 
-        for feature_idx in range(window.shape[1]):
-            # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
-            f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
-            data_matrix.append(np.abs(Zxx))
+        if model.network_type == '2LCNN':
+            # STFT
+            fs = 200
+            nperseg = 16
+            noverlap = nperseg - 1
+            data_matrix = [] 
+            for feature_idx in range(window.shape[1]):
+                # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+                f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                data_matrix.append(np.abs(Zxx))
+        elif model.network_type == '3LCNN':
+            # CWT
+            wavelet = 'cmor'  # Complex Morlet wavelet (suitable for time-frequency analysis)
+            scales = np.arange(1, 128)  # Adjust the range of scales as needed
+            fs = 200
+            data_matrix = [] 
+            for feature_idx in range(window.shape[1]):
+                coefficients, frequencies = pywt.cwt(window[:, feature_idx], scales, wavelet,sampling_period=1/fs)
+                data_matrix.append(np.abs(coefficients))
 
         # Predict the touch_type using the CNN Model
         with torch.no_grad():
