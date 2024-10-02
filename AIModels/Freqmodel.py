@@ -25,7 +25,7 @@ time_window = 200
 batch_size = 64
 lr = 0.001
 n_epochs = 100
-network_type = '2L3DCNN'
+network_type = '3LCNN'
 train_all_data = False
 
 
@@ -39,25 +39,53 @@ class CNNSequence(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc1 = nn.Linear(32 * 5 * 5, 64)
             self.fc2 = nn.Linear(64, num_classes)
-        
+        elif network_type == '3LCNN':
+            self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
+            self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
+            self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0)
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc1 = nn.Linear(64* 14 * 9, 128)
+            self.fc2 = nn.Linear(128, num_classes)
+
+        self.network_type = network_type
         self.num_classes = num_classes
 
     def forward(self, input):
-        x = nn.functional.relu(self.conv1(input))
-        # print("After conv1:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (1,2))
-        # print("After MP1:", x.shape)  # 检查形状
-        x = nn.functional.relu(self.conv2(x))
-        # print("After conv2:", x.shape)  # 检查形状
-        x = nn.functional.max_pool2d(x, (1,2))
-        # print("After MP1:", x.shape)  # 检查形状
-        # x = nn.functional.relu(self.conv3(x))
-        # x = nn.functional.max_pool2d(x, 2)
-        x = self.flatten(x)
-        # x = x.view(x.size(0), -1)
-        # print("After Flatten:", x.shape)  # 检查形状
-        x = nn.functional.relu(self.fc1(x))
-        x = self.fc2(x)
+        if self.network_type == '2LCNN':
+            x = nn.functional.relu(self.conv1(input))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.max_pool2d(x, (1, 2))
+            # print("After MP1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = nn.functional.max_pool2d(x, (1, 2))
+            # print("After MP1:", x.shape)  # 检查形状
+            # x = nn.functional.relu(self.conv3(x))
+            # x = nn.functional.max_pool2d(x, 2)
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.fc1(x))
+            x = self.fc2(x)
+        elif self.network_type == '3LCNN':
+            x = nn.functional.relu(self.conv1(input))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 2))
+            # print("After MP1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 1))
+            # print("After MP2:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv3(x))
+            # print("After conv3:", x.shape)  # 检查形状
+            x = nn.functional.avg_pool2d(x, (2, 1))
+            # print("After MP3:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.fc1(x))
+            x = self.fc2(x)
+
         return x
     
 class CNNSequence3D(nn.Module):
@@ -110,14 +138,23 @@ def get_output(data_ds, model):
     
 
 if __name__ == '__main__':
-    # NPZ Rawu Data Loading
-    loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
-    stft_matrices = np.array(loaded_data['stft_matrices'])
-    labels_str = loaded_data['labels']
-    str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
-    labels = [str2int[string] for string in labels_str]
-    window_ids = loaded_data['window_ids']
-    train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
+    # NPZ Raw Data Loading
+    if network_type == '2LCNN':
+        loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
+        stft_matrices = np.array(loaded_data['stft_matrices'])
+        labels_str = loaded_data['labels']
+        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
+        labels = [str2int[string] for string in labels_str]
+        window_ids = loaded_data['window_ids']
+        train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
+    elif network_type == '3LCNN':
+        loaded_data = np.load('DATA/CWT_images/cwt_matrices.npz', allow_pickle=True)    
+        cwt_matrices = np.array(loaded_data['cwt_matrices'])
+        labels_str = loaded_data['labels']
+        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
+        labels = [str2int[string] for string in labels_str]
+        window_ids = loaded_data['window_ids']
+        train_matrices, test_matrices, train_labels, test_labels = train_test_split(cwt_matrices, labels, test_size=0.2, random_state=2024)
     # print(train_matrices)
 
     torch.manual_seed(2024)
@@ -137,7 +174,7 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model
-    if network_type == "2LCNN":
+    if network_type == "2LCNN" or '3LCNN':
         model = CNNSequence(network_type=network_type, num_classes=num_classes)
     elif network_type == '2L3DCNN':
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
