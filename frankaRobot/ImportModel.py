@@ -37,31 +37,15 @@ class RNNSequence(nn.Module):
         self.linear = nn.Linear(in_features=50, out_features=num_classes)
         ## need to check output_size
 
+        self.network_type = network_type
+        self.num_classes = num_classes
+
     def forward(self, input):
         x,_ = self.innernet(input)
         x = x[:,-1,:]
         x = self.linear(x)
         return x
     
-def get_rnn_output(data_ds, model): 
-    labels_pred = []
-    model.eval()
-    with torch.no_grad():
-        for i in range(len(data_ds.data_target)):
-            x , y = data_ds.__getitem__(i)
-            x = x[None, :]
-
-            x = model(x)
-            x = x.squeeze()
-            #labels_pred.append(torch.Tensor.cpu(x.detach()).numpy())
-            labels_pred.append(x.detach().numpy())
-    #convert list type to array
-    labels_pred = np.array(labels_pred)
-    labels_pred = labels_pred.argmax(axis=1)
-    labels_true = np.array(data_ds.data_target[:])
-    labels_true = labels_true.astype('int64')
-
-    return torch.tensor(labels_pred), torch.tensor(labels_true)
 
 class CNNSequence(nn.Module):
     def __init__(self, network_type, num_classes):
@@ -127,6 +111,7 @@ class CNNSequence3D(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         
+        self.network_type = network_type
         self.num_classes = num_classes
 
     def forward(self, input):
@@ -143,30 +128,11 @@ class CNNSequence3D(nn.Module):
         x = self.fc(x)
         return x
 
-def get_cnn_output(data_ds, model):
-    labels_pred = []
-    model.eval()
-    with torch.no_grad():
-        for i in range(len(data_ds.labels)):
-            x, y = data_ds.__getitem__(i)
-            x = x.unsqueeze(0)
-            x = model(x)
-            x = x.squeeze()
-            labels_pred.append(x.detach().numpy())
-  
-    #convert list type to array
-    labels_pred = np.array(labels_pred)
-    labels_pred = labels_pred.argmax(axis=1)
-    labels_true = np.array(data_ds.labels[:])
-    labels_true = labels_true.astype('int64')
-
-    return torch.tensor(labels_pred), torch.tensor(labels_true)
-
 
 class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
         super(Time3DCNNSequence, self).__init__()
-        if network_type == '2L3DCNN':
+        if network_type == '2L3DTCNN':
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
             
@@ -177,10 +143,11 @@ class Time3DCNNSequence(nn.Module):
             self.fc = nn.Linear(32, num_classes)
         
         self.network_type = network_type
+        self.num_classes = num_classes
         ## need to check output_size
 
     def forward(self, input):
-        if self.network_type == '2L3DCNN':
+        if self.network_type == '2L3DTCNN':
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状
@@ -205,7 +172,7 @@ def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features
 
 def import_cnn_models(PATH:str, network_type:str, num_classes:int):
     
-    if network_type == '2LCNN' or '3LCNN':
+    if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type = network_type, num_classes = num_classes)
     elif network_type == '2L3DCNN':
         model = CNNSequence3D(network_type = network_type, num_classes = num_classes)

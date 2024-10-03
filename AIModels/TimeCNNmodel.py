@@ -35,14 +35,14 @@ batch_size = 64
 lr = 0.001
 n_epochs = 100
 
-network_type = '2L3DCNN'
+network_type = '2L3DTCNN'
 train_all_data = False # train a model using all avaiable data
 
 
 class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
         super(Time3DCNNSequence, self).__init__()
-        if network_type == '2L3DCNN':
+        if network_type == '2L3DTCNN':
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
             
@@ -56,7 +56,7 @@ class Time3DCNNSequence(nn.Module):
         ## need to check output_size
 
     def forward(self, input):
-        if self.network_type == '2L3DCNN':
+        if self.network_type == '2L3DTCNN':
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状

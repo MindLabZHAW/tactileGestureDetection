@@ -98,20 +98,23 @@ class CNNSequence3D(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         
+        self.network_type = network_type
         self.num_classes = num_classes
 
     def forward(self, input):
-        x = input.unsqueeze(1)
-        x = nn.functional.relu(self.conv1(x))
-        print("After conv1:", x.shape)  # 检查形状
-        x = nn.functional.relu(self.conv2(x))
-        print("After conv2:", x.shape)  # 检查形状
-        x = self.global_max_pool(x)
-        print("After MP1:", x.shape)  # 检查形状
-        x = self.flatten(x)
-        # x = x.view(x.size(0), -1)
-        print("After Flatten:", x.shape)  # 检查形状
-        x = self.fc(x)
+        if self.network_type == '2L3DCNN':
+            x = input.unsqueeze(1)
+            x = nn.functional.relu(self.conv1(x))
+            print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            print("After conv2:", x.shape)  # 检查形状
+            x = self.global_max_pool(x)
+            print("After MP1:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            print("After Flatten:", x.shape)  # 检查形状
+            x = self.fc(x)
+        
         return x
 
 def get_output(data_ds, model):
@@ -139,7 +142,7 @@ def get_output(data_ds, model):
 
 if __name__ == '__main__':
     # NPZ Raw Data Loading
-    if network_type == '2LCNN' or '2L3DCNN':
+    if network_type in ['2LCNN', '2L3DCNN']:
         loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['stft_matrices'])
         labels_str = loaded_data['labels']
@@ -174,7 +177,7 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model
-    if network_type == "2LCNN" or '3LCNN':
+    if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type=network_type, num_classes=num_classes)
     elif network_type == '2L3DCNN':
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)

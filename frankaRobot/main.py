@@ -68,13 +68,14 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'Freq'
+method = 'TCNN'
 
 if method == 'KNN':
     # Load the KNN model
     # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
     model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/KNN_SVM__RF_flatten_undersampling_hybried.pkl'
     model = joblib.load(model_path)
+
 elif method == 'RNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_26_2024_15-03-37MainPhaseKickOffMeeting.pth'
     model = import_rnn_models(model_path, network_type='NCPCfC', num_classes=classes_num, num_features=features_num, time_window=window_length)
@@ -87,9 +88,10 @@ elif method == 'RNN':
     # Move PyTorch models to the selected device
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
+
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_03_2024_14-53-41.pth'
-    model = import_tcnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_03_2024_17-46-08.pth'
+    model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -98,7 +100,8 @@ elif method == 'TCNN':
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
     model = model.to(device)
-    transform = transforms.Compose([transforms.ToTensor()])
+    # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
+
 elif method == 'Freq':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_09_26_2024_14-38-29.pth'
     model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
@@ -110,7 +113,7 @@ elif method == 'Freq':
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
     model = model.to(device)
-    transform = transforms.Compose([transforms.ToTensor()])
+    transform = transforms.Compose([transforms.ToTensor()]) # Raw input is (H,W,C) so use ToTensor() to transform to (C,H,W)
 
 
 
@@ -196,14 +199,16 @@ def contact_detection(data):
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
+    
+
     elif method == 'TCNN':
         new_block = np.expand_dims(np.column_stack((e,de,tau_J,tau_ext)), axis=0)
         # print(new_block.shape)
         window = np.append(window[1:, :, :], new_block, axis = 0)
         with torch.no_grad():
-            # print(window.shape)
             # Prepare inputs
-            data_input = transform(window).permute(1, 2, 0).unsqueeze(0).to(device).float()
+            # print(window.shape)
+            data_input = torch.from_numpy(window).unsqueeze(0).to(device).float()
             # Calculate model outputs for each window
             # print(data_input.shape)
             model_out = model(data_input).detach()
@@ -218,12 +223,13 @@ def contact_detection(data):
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
 
+
     elif method == 'Freq':
         new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
         # print(f"new row is {new_row}")
         window = np.append(window[1:, :], new_row, axis=0)
         
-        if model.network_type == '2LCNN':
+        if model.network_type in ['2LCNN', '2L3DCNN']:
             # STFT
             fs = 200
             nperseg = 16
@@ -246,8 +252,10 @@ def contact_detection(data):
         # Predict the touch_type using the CNN Model
         with torch.no_grad():
             stft_matrix = np.stack(data_matrix, axis=-1)
+            # print(stft_matrix.shape)
             # print(torch.unsqueeze(transform(stft_matrix),0).shape)
             stft_matrix_input = transform(stft_matrix).unsqueeze(0).to(device).float()
+            # print(stft_matrix_input.shape)
             model_out = model(stft_matrix_input).detach()
             # print(model_out)
             output = torch.argmax(model_out)
