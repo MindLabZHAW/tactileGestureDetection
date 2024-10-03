@@ -194,21 +194,11 @@ class create_tensor_dataset(Dataset):
         self.data_input = []
         self.data_target = []
 
-        for block_id, group in grouped:
+        for window_id, group in grouped:
             # encoding label
             label_i = group['window_touch_type'].iloc[0]
-            if label_i == 'NC':
-                self.data_target.append(0)
-            elif label_i == 'ST':
-                self.data_target.append(1)
-            elif label_i == 'DT':
-                self.data_target.append(2)
-            elif label_i == 'P':
-                self.data_target.append(3)
-            elif label_i == 'G':
-                self.data_target.append(4)
-            else:
-                self.data_target.append(-1)
+            label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            self.data_target.append(label_map.get(label_i, -1))
             # resize to 7 lines data(7 joints)
             joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(28*4)
             for i, joint_colums in enumerate(joints_colums):
@@ -234,8 +224,62 @@ class create_tensor_dataset_stft(Dataset):
         stft_matrix = torch.tensor(self.stft_matrices[idx], dtype=torch.float32).permute(2, 0, 1) # transfer to (channels, f, t)
         label = torch.tensor(self.labels[idx], dtype=torch.long)
         return stft_matrix, label
+    
+class create_tensor_dataset_tcnn(Dataset):
+    
+    def __init__(self, path='../contactInterpretation-main/dataset/realData/labeled_window_dataset.csv', num_classes=4, num_features=4):
+        self.path = path
+        self.num_classes = num_classes
+        self.num_features = num_features
+
+        self.read_dataset()
+
+    def __len__(self):
+        return len(self.data_target)
+
+
+    def __getitem__(self, index:int):
+        data_sample = torch.tensor(self.data_input[index])
+        # print(data_sample)
+        # print(data_sample.shape)
+        target = torch.tensor(self.data_target[index])
+        return data_sample, target
+
+    def read_dataset(self):
+        df = pd.read_csv(self.path)
+        # exclude_columns = ['index', 'time', 'label', 'block_id', 'touch_type']
+        
+        joint0_colums = ['e0','de0','tau_J0','tau_ext0']
+        joint1_colums = ['e1','de1','tau_J1','tau_ext1']
+        joint2_colums = ['e2','de2','tau_J2','tau_ext2']
+        joint3_colums = ['e3','de3','tau_J3','tau_ext3']
+        joint4_colums = ['e4','de4','tau_J4','tau_ext4']
+        joint5_colums = ['e5','de5','tau_J5','tau_ext5']
+        joint6_colums = ['e6','de6','tau_J6','tau_ext6']
+
+        joints_colums = joint0_colums + joint1_colums + joint2_colums + joint3_colums + joint4_colums + joint5_colums + joint6_colums
+
+        grouped = df.groupby('window_id')
+
+        self.data_input = []
+        self.data_target = []
+
+        for window_id, group in grouped:
+            # encoding label
+            label_i = group['window_touch_type'].iloc[0]
+            label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            self.data_target.append(label_map.get(label_i, -1))
+            # get and resize window data to windowlen x 7(dof) x featurenum
+            data_i = group[joints_colums].values
+            joints_data = data_i.reshape(-1, 7, self.num_features)
+            # print(joints_data.shape)
+            # print(joints_data)
+            self.data_input.append(joints_data)
+
+        # print(self.data_input)
+        # print(self.data_target)
 
 if __name__ == '__main__':
-    rnndata = create_tensor_dataset('DATA/labeled_window_dataset_train.csv')
+    rnndata = create_tensor_dataset_tcnn('DATA/labeled_window_dataset_train.csv')
     print(rnndata.data_input[1].shape)
     # print(rnndata.data_target)

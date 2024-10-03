@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 import sys
 sys.path.append("Process_Data")
-from Data2Models import create_tensor_dataset
+from Data2Models import create_tensor_dataset_tcnn
 
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
@@ -49,6 +49,7 @@ class Time3DCNNSequence(nn.Module):
             # 定义 3D 池化层
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
         
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         
         self.network_type = network_type
@@ -67,6 +68,7 @@ class Time3DCNNSequence(nn.Module):
             # x = x.view(x.size(0), -1)
             # print("After Flatten:", x.shape)  # 检查形状
             x = self.fc(x)
+        return x
 
 def get_output(data_ds, model): 
     labels_pred = []
@@ -74,9 +76,9 @@ def get_output(data_ds, model):
     with torch.no_grad():
         for i in range(len(data_ds.data_target)):
             x , y = data_ds.__getitem__(i)
-            # print(x.shape)
+            print(x.shape)
             x = x.unsqueeze(0)
-            # print(x.shape)
+            print(x.shape)
             x = model(x)
             x = x.squeeze()
             labels_pred.append(x.detach().numpy())
