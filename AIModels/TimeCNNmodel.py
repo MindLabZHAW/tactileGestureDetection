@@ -35,60 +35,50 @@ batch_size = 64
 lr = 0.001
 n_epochs = 100
 
-network_type = 'NCPCfC'
+network_type = '2L3DCNN'
 train_all_data = False # train a model using all avaiable data
 
-# collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
-# collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
-# collision = False; localization = True; n_epochs = 110; batch_size =64; num_classes = 2; lr = 0.001
 
-class Sequence(nn.Module):
+class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
-        super(Sequence, self).__init__()
-        if network_type == 'LSTM':
-            hidden_size = 50
-            self.innernet = nn.LSTM(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
-        elif network_type == 'GRU':
-            hidden_size = 50
-            self.innernet = nn.GRU(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
-        elif network_type == 'FCLTC':
-            units = 50
-            self.innernet = LTC(input_size=num_features * time_window, units=units, batch_first=True)
-        elif network_type == 'FCCfC':
-            units = 50
-            self.innernet = CfC(input_size=num_features * time_window, units=units, batch_first=True)
-        elif network_type == 'NCPLTC':
-            units = 53
-            input_size = num_features * time_window
-            output_size = 50
-            self.innernet = LTC(input_size=input_size, units=AutoNCP(units=units, output_size=output_size), batch_first=True)
-        elif network_type == 'NCPCfC':
-            units = 53
-            input_size = num_features * time_window
-            output_size = 50
-            self.innernet = CfC(input_size, AutoNCP(units=units, output_size=output_size), batch_first=True) ### youwenti!
-        self.linear = nn.Linear(in_features=50, out_features=num_classes)
+        super(Time3DCNNSequence, self).__init__()
+        if network_type == '2L3DCNN':
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
+            
+            # 定义 3D 池化层
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+        
+            self.fc = nn.Linear(32, num_classes)
         
         self.network_type = network_type
         ## need to check output_size
 
     def forward(self, input):
-        x,_ = self.innernet(input)
-        x = x[:,-1,:]
-        x = self.linear(x)
-        return x
-    
+        if self.network_type == '2L3DCNN':
+            x = input.unsqueeze(1)
+            x = nn.functional.relu(self.conv1(x))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = self.global_max_pool(x)
+            # print("After MP1:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = self.fc(x)
+
 def get_output(data_ds, model): 
     labels_pred = []
     model.eval()
     with torch.no_grad():
         for i in range(len(data_ds.data_target)):
             x , y = data_ds.__getitem__(i)
-            x = x[None, :]
-
+            # print(x.shape)
+            x = x.unsqueeze(0)
+            # print(x.shape)
             x = model(x)
             x = x.squeeze()
-            #labels_pred.append(torch.Tensor.cpu(x.detach()).numpy())
             labels_pred.append(x.detach().numpy())
     #convert list type to array
     labels_pred = np.array(labels_pred)
@@ -112,8 +102,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_train.csv')
-    testing_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_test.csv')
+    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/labeled_window_dataset_train.csv')
+    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/labeled_window_dataset_test.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)
@@ -124,7 +114,7 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model  
-    model= Sequence(network_type)
+    model= Time3DCNNSequence(network_type)
     model = model.double() # Used to keep the input as double type 
     # Use Adam optimizer and CrossEntropyLoss as the loss function
     optimizer = optim.Adam(model.parameters(), lr=lr)
