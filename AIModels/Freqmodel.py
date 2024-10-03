@@ -25,7 +25,7 @@ time_window = 200
 batch_size = 64
 lr = 0.001
 n_epochs = 100
-network_type = '3LCNN'
+network_type = '2L3DCNN'
 train_all_data = False
 
 
@@ -103,14 +103,14 @@ class CNNSequence3D(nn.Module):
     def forward(self, input):
         x = input.unsqueeze(1)
         x = nn.functional.relu(self.conv1(x))
-        # print("After conv1:", x.shape)  # 检查形状
+        print("After conv1:", x.shape)  # 检查形状
         x = nn.functional.relu(self.conv2(x))
-        # print("After conv2:", x.shape)  # 检查形状
+        print("After conv2:", x.shape)  # 检查形状
         x = self.global_max_pool(x)
-        # print("After MP1:", x.shape)  # 检查形状
+        print("After MP1:", x.shape)  # 检查形状
         x = self.flatten(x)
         # x = x.view(x.size(0), -1)
-        # print("After Flatten:", x.shape)  # 检查形状
+        print("After Flatten:", x.shape)  # 检查形状
         x = self.fc(x)
         return x
 
@@ -139,7 +139,7 @@ def get_output(data_ds, model):
 
 if __name__ == '__main__':
     # NPZ Raw Data Loading
-    if network_type == '2LCNN':
+    if network_type == '2LCNN' or '2L3DCNN':
         loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['stft_matrices'])
         labels_str = loaded_data['labels']
