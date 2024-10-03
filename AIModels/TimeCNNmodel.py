@@ -76,9 +76,9 @@ def get_output(data_ds, model):
     with torch.no_grad():
         for i in range(len(data_ds.data_target)):
             x , y = data_ds.__getitem__(i)
-            print(x.shape)
+            # print(x.shape)
             x = x.unsqueeze(0)
-            print(x.shape)
+            # print(x.shape)
             x = model(x)
             x = x.squeeze()
             labels_pred.append(x.detach().numpy())

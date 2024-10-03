@@ -163,6 +163,37 @@ def get_cnn_output(data_ds, model):
     return torch.tensor(labels_pred), torch.tensor(labels_true)
 
 
+class Time3DCNNSequence(nn.Module):
+    def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
+        super(Time3DCNNSequence, self).__init__()
+        if network_type == '2L3DCNN':
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
+            
+            # 定义 3D 池化层
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+        
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc = nn.Linear(32, num_classes)
+        
+        self.network_type = network_type
+        ## need to check output_size
+
+    def forward(self, input):
+        if self.network_type == '2L3DCNN':
+            x = input.unsqueeze(1)
+            x = nn.functional.relu(self.conv1(x))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = self.global_max_pool(x)
+            # print("After MP1:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = self.fc(x)
+        return x
+
 def import_rnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
 
 	model = RNNSequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
@@ -182,4 +213,10 @@ def import_cnn_models(PATH:str, network_type:str, num_classes:int):
     model.load_state_dict(checkpoint["model_state_dict"])
     
     print('***  Models loaded  ***')
+    return model.eval()
+
+def import_tcnn_models(PATH:str, network_type:str, num_classes:int,  num_features:int, time_window:int):
+    model = Time3DCNNSequence(network_type = network_type, num_classes = num_classes, num_features=num_features, time_window=time_window)
+    checkpoint = torch.load(PATH)
+    model.load_state_dict(checkpoint["model_state_dict"])
     return model.eval()
