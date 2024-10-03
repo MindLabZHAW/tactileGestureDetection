@@ -57,7 +57,7 @@ from franka_interface_msgs.msg import RobotState
 
 from frankapy import FrankaArm
 
-from ImportModel import import_rnn_models, import_cnn_models
+from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
 
 # Set the main path
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
@@ -87,9 +87,21 @@ elif method == 'RNN':
     # Move PyTorch models to the selected device
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()])
+elif method == 'TCNN':
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_03_2024_14-53-41.pth'
+    model = import_tcnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
+
+    # Set device for PyTorch models
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    if device.type == "cuda":
+        torch.cuda.get_device_name()
+    # Move PyTorch models to the selected device
+    model = model.to(device)
+    transform = transforms.Compose([transforms.ToTensor()])
 elif method == 'Freq':
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2LCNN_09_25_2024_16-15-32.pth'
-    model = import_cnn_models(model_path, network_type='2LCNN', num_classes=classes_num)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_09_26_2024_14-38-29.pth'
+    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -101,6 +113,7 @@ elif method == 'Freq':
     transform = transforms.Compose([transforms.ToTensor()])
 
 
+
 # Prepare window to collect features
 if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
@@ -108,6 +121,8 @@ elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
     window2 = np.zeros([dof, features_num * window_length])
     window3 = np.zeros([dof, features_num * window_length])
+elif method == 'TCNN':
+    window = np.zeros([window_length, dof, features_num])
 elif method == 'Freq':
     window = np.zeros([window_length, features_num * dof])
 
@@ -181,7 +196,27 @@ def contact_detection(data):
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
-
+    elif method == 'TCNN':
+        new_block = np.expand_dims(np.column_stack((e,de,tau_J,tau_ext)), axis=0)
+        # print(new_block.shape)
+        window = np.append(window[1:, :, :], new_block, axis = 0)
+        with torch.no_grad():
+            # print(window.shape)
+            # Prepare inputs
+            data_input = transform(window).permute(1, 2, 0).unsqueeze(0).to(device).float()
+            # Calculate model outputs for each window
+            # print(data_input.shape)
+            model_out = model(data_input).detach()
+            # Get predictions for each window 
+            output = torch.argmax(model_out, dim=1)
+        # Convert outputs to CPU numpy arrays
+        touch_type_idx = output.cpu().numpy()[0]
+        # Project the int index to string output
+        label_map_RNN = {0:"NC", 1:"ST", 2:"DT", 3:"P", 4:"G"}
+        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
+        # Store the results
+        time_sec = int(rospy.get_time())
+        results.append([time_sec, touch_type])
 
     elif method == 'Freq':
         new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
