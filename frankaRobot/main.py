@@ -69,6 +69,7 @@ dof = 7
 features_num = 4
 classes_num = 5
 method = 'TCNN'
+Normalization = False
 
 if method == 'KNN':
     # Load the KNN model
@@ -90,7 +91,7 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_03_2024_17-46-08.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_09_2024_17-34-391LTCNN.pth'
     model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
@@ -148,6 +149,9 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
+    if Normalization == True:
+        #normalizaiont operation
+    
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
         # print(f"new data is {new_data}")

@@ -133,8 +133,8 @@ class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
         super(Time3DCNNSequence, self).__init__()
         if network_type == '2L3DTCNN':
-            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
-            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(28, 3, 3), stride=1, padding=0)
+            # self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0)
             
             # 定义 3D 池化层
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
@@ -151,7 +151,7 @@ class Time3DCNNSequence(nn.Module):
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状
-            x = nn.functional.relu(self.conv2(x))
+            #x = nn.functional.relu(self.conv2(x))
             # print("After conv2:", x.shape)  # 检查形状
             x = self.global_max_pool(x)
             # print("After MP1:", x.shape)  # 检查形状
