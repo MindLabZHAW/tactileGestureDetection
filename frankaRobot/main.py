@@ -272,7 +272,7 @@ def contact_detection(data):
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
-    rospy.loginfo(f'Predicted touch_type: {touch_type}')
+    rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
     start_time = np.array(start_time).tolist()
     time_sec = int(start_time)
