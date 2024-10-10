@@ -25,7 +25,7 @@ time_window = 200
 batch_size = 64
 lr = 0.001
 n_epochs = 100
-network_type = '2L3DCNN'
+network_type = 'T2L3DCNN'
 train_all_data = False
 
 
@@ -91,7 +91,7 @@ class CNNSequence(nn.Module):
 class CNNSequence3D(nn.Module):
     def __init__(self, network_type, num_classes):
         super(CNNSequence3D, self).__init__()
-        if network_type == '2L3DCNN':
+        if network_type in ['2L3DCNN', 'T2L3DCNN']:
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(28, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(1, 3, 3), stride=1, padding=0)
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
@@ -102,7 +102,7 @@ class CNNSequence3D(nn.Module):
         self.num_classes = num_classes
 
     def forward(self, input):
-        if self.network_type == '2L3DCNN':
+        if self.network_type in ['2L3DCNN', 'T2L3DCNN']:
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状
@@ -158,6 +158,14 @@ if __name__ == '__main__':
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(cwt_matrices, labels, test_size=0.2, random_state=2024)
+    if network_type == 'T2L3DCNN':
+        loaded_data = np.load('DATA/T_images/T_matrices.npz', allow_pickle=True)    
+        stft_matrices = np.array(loaded_data['T_matrices'])
+        labels_str = loaded_data['labels']
+        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
+        labels = [str2int[string] for string in labels_str]
+        window_ids = loaded_data['window_ids']
+        train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
     # print(train_matrices)
 
     torch.manual_seed(2024)
@@ -179,7 +187,7 @@ if __name__ == '__main__':
     # Build the model
     if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type=network_type, num_classes=num_classes)
-    elif network_type == '2L3DCNN':
+    elif network_type in ['2L3DCNN', 'T2L3DCNN']:
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
     # Use Adam optimizer and CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -233,7 +241,8 @@ if __name__ == '__main__':
     # Save model
     named_tuple = time.localtime() 
     if input('do you want to save the data in trained models? (y/n):')=='y':
-        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + '.pth'
+        tag = input('Please put a tag if needed: ')
+        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + tag + '.pth'
 
         torch.save({"model_state_dict": model.state_dict(),
                 "optimzier_state_dict": optimizer.state_dict(), "network_type": network_type,

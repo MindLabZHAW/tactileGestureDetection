@@ -262,6 +262,15 @@ def contact_detection(data):
             for feature_idx in range(window.shape[1]):
                 coefficients, frequencies = pywt.cwt(window[:, feature_idx], scales, wavelet,sampling_period=1/fs)
                 data_matrix.append(np.abs(coefficients))
+        elif model.network_type == 'T2L3DCNN':
+            T_window_size = 16
+            T_step = 1
+            T_window_num = window - T_window_size + 1
+            T_matrix = np.zeros([T_window_size, T_window_num])
+            for i in range(T_window_num):
+                T_matrix[:,i] = signal[i:i+T_window_size]
+            # print(T_matrix)
+            data_matrix.append(T_matrix)
 
         # Predict the touch_type using the CNN Model
         with torch.no_grad():
