@@ -20,7 +20,7 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
 
 num_classes = 5
-time_window = 200
+time_window = 28
 
 batch_size = 64
 lr = 0.001
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     # Save model
     named_tuple = time.localtime() 
     if input('do you want to save the data in trained models? (y/n):')=='y':
-        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple)) + '.pth'
+        output_path = path_name + network_type + str(time.strftime("_%m_%d_%Y_%H-%M-%S", named_tuple))
 
         torch.save({"model_state_dict": model.state_dict(),
                 "optimzier_state_dict": optimizer.state_dict(), "network_type": network_type,
