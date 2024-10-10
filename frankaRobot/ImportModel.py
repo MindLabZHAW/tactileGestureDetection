@@ -104,7 +104,7 @@ class CNNSequence(nn.Module):
 class CNNSequence3D(nn.Module):
     def __init__(self, network_type, num_classes):
         super(CNNSequence3D, self).__init__()
-        if network_type == '2L3DCNN':
+        if network_type in ['2L3DCNN', 'T2L3DCNN']:
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(28, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(1, 3, 3), stride=1, padding=0)
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
@@ -174,7 +174,7 @@ def import_cnn_models(PATH:str, network_type:str, num_classes:int):
     
     if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type = network_type, num_classes = num_classes)
-    elif network_type == '2L3DCNN':
+    elif network_type in ['2L3DCNN', 'T2L3DCNN']:
         model = CNNSequence3D(network_type = network_type, num_classes = num_classes)
     checkpoint = torch.load(PATH)
     model.load_state_dict(checkpoint["model_state_dict"])

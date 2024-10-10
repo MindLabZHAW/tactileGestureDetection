@@ -68,7 +68,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'TCNN'
+method = 'Freq'
 Normalization = False
 
 if method == 'KNN':
@@ -104,8 +104,8 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_09_2024_19-03-35Size9x13.pth'
-    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_10_2024_17-25-56TImage50Epoch.pth'
+    model = import_cnn_models(model_path, network_type='T2L3DCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -264,13 +264,16 @@ def contact_detection(data):
                 data_matrix.append(np.abs(coefficients))
         elif model.network_type == 'T2L3DCNN':
             T_window_size = 16
-            T_step = 1
-            T_window_num = window - T_window_size + 1
-            T_matrix = np.zeros([T_window_size, T_window_num])
-            for i in range(T_window_num):
-                T_matrix[:,i] = signal[i:i+T_window_size]
-            # print(T_matrix)
-            data_matrix.append(T_matrix)
+            T_step = 1  # not used because iteration automatically +1,but if step is not 1 we need to fix this
+            T_window_num = len(window) - T_window_size + 1
+            data_matrix = [] 
+            for feature_idx in range(window.shape[1]):
+                T_matrix = np.zeros([T_window_size, T_window_num])
+                signal = window[:, feature_idx]
+                for i in range(T_window_num):
+                    T_matrix[:,i] = signal[i:i+T_window_size]
+                # print(T_matrix)
+                data_matrix.append(np.array(T_matrix))
 
         # Predict the touch_type using the CNN Model
         with torch.no_grad():
