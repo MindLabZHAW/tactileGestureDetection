@@ -149,6 +149,18 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
+    if Normalization == True:
+        # Min-Max Normalization
+        e_min, e_max = np.min(e), np.max(e)
+        de_min, de_max = np.min(de), np.max(de)
+        tau_J_min, tau_J_max = np.min(tau_J), np.max(tau_J)
+        tau_ext_min, tau_ext_max = np.min(tau_ext), np.max(tau_ext)
+        
+        # Normalize the data
+        e = (e - e_min) / (e_max - e_min)
+        de = (de - de_min) / (de_max - de_min)
+        tau_J = (tau_J - tau_J_min) / (tau_J_max - tau_J_min)
+        tau_ext = (tau_ext - tau_ext_min) / (tau_ext_max - tau_ext_min)
     
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
