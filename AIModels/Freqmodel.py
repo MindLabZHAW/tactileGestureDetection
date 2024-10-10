@@ -105,14 +105,14 @@ class CNNSequence3D(nn.Module):
         if self.network_type == '2L3DCNN':
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
-            print("After conv1:", x.shape)  # 检查形状
+            # print("After conv1:", x.shape)  # 检查形状
             x = nn.functional.relu(self.conv2(x))
-            print("After conv2:", x.shape)  # 检查形状
+            # print("After conv2:", x.shape)  # 检查形状
             x = self.global_max_pool(x)
-            print("After MP1:", x.shape)  # 检查形状
+            # print("After MP1:", x.shape)  # 检查形状
             x = self.flatten(x)
             # x = x.view(x.size(0), -1)
-            print("After Flatten:", x.shape)  # 检查形状
+            # print("After Flatten:", x.shape)  # 检查形状
             x = self.fc(x)
         
         return x

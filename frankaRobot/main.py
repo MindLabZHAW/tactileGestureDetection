@@ -68,7 +68,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'TCNN'
+method = 'Freq'
 Normalization = False
 
 if method == 'KNN':
@@ -149,8 +149,6 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
-    if Normalization == True:
-        #normalizaiont operation
     
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
