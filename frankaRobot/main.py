@@ -80,10 +80,11 @@ if method == 'KNN':
 elif method == 'RNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_26_2024_15-03-37MainPhaseKickOffMeeting.pth'
     model = import_rnn_models(model_path, network_type='NCPCfC', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    print(f'Using devise: {device}')
     if device.type == "cuda":
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
@@ -93,10 +94,11 @@ elif method == 'RNN':
 elif method == 'TCNN':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_09_2024_17-34-391LTCNN.pth'
     model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    print(f'Using devise: {device}')
     if device.type == "cuda":
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
@@ -105,11 +107,12 @@ elif method == 'TCNN':
 
 elif method == 'Freq':
     model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_10_2024_17-25-56TImage50Epoch.pth'
-    model = import_cnn_models(model_path, network_type='T2L3DCNN', num_classes=classes_num)
+    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
+    print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    print(f'Using devise: {device}')
     if device.type == "cuda":
         torch.cuda.get_device_name()
     # Move PyTorch models to the selected device
@@ -121,14 +124,18 @@ elif method == 'Freq':
 # Prepare window to collect features
 if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
+    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
     window2 = np.zeros([dof, features_num * window_length])
     window3 = np.zeros([dof, features_num * window_length])
+    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'TCNN':
     window = np.zeros([window_length, dof, features_num])
+    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'Freq':
     window = np.zeros([window_length, features_num * dof])
+    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 
 
 # Initialize a list to store the results

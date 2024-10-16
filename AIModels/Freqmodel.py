@@ -25,13 +25,40 @@ time_window = 28
 batch_size = 64
 lr = 0.001
 n_epochs = 50
-network_type = '2L3DCNN'
+network_type = '2LCNN'
 train_all_data = False
+normalization = True
+
+class ZScoreNormalization(nn.Module):
+    def __init__(self,time_window):
+        self.time_window = time_window
+
+    def forward(self,x):
+        DOF,joint_seq=x.shape
+        print(f"dof is {DOF},joint_seq is {joint_seq}")
+
+        # reshaped_x = x.reshape((DOF,joint_seq//self.time_window,self.time_window))
+        normalized_x = torch.zeros_like(x)
+
+        for dof in range(DOF):
+
+            for i in range(joint_seq//self.time_window):
+                segment = x[:,dof,i,:]
+                mean = torch.mean(segment,dim=1,keepdim=True)
+                std = torch.std(segment,dim=1,keepdim=True)
+                normalized_x[:,dof,i,:]=segment/(std + 1e-6)
+
+        normalized_x = normalized_x.reshape((DOF,joint_seq))
+        return normalized_x
+
+        
 
 
 class CNNSequence(nn.Module):
-    def __init__(self, network_type, num_classes):
+    def __init__(self,time_window, network_type, num_classes):
         super(CNNSequence, self).__init__()
+        if normalization == True:
+            self.normalization = ZScoreNormalization(time_window)
         if network_type == '2LCNN':
             self.conv1 = nn.Conv2d(in_channels=28, out_channels=16, kernel_size=3, stride=1, padding=0)
             self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0)
@@ -50,9 +77,9 @@ class CNNSequence(nn.Module):
         self.network_type = network_type
         self.num_classes = num_classes
 
-    def forward(self, input):
+    def forward(self, normalization):
         if self.network_type == '2LCNN':
-            x = nn.functional.relu(self.conv1(input))
+            x = nn.functional.relu(self.conv1(normalization))
             # print("After conv1:", x.shape)  # 检查形状
             x = nn.functional.max_pool2d(x, (1, 2))
             # print("After MP1:", x.shape)  # 检查形状
@@ -68,7 +95,7 @@ class CNNSequence(nn.Module):
             x = nn.functional.relu(self.fc1(x))
             x = self.fc2(x)
         elif self.network_type == '3LCNN':
-            x = nn.functional.relu(self.conv1(input))
+            x = nn.functional.relu(self.conv1(normalization))
             # print("After conv1:", x.shape)  # 检查形状
             x = nn.functional.avg_pool2d(x, (2, 2))
             # print("After MP1:", x.shape)  # 检查形状
@@ -91,6 +118,7 @@ class CNNSequence(nn.Module):
 class CNNSequence3D(nn.Module):
     def __init__(self, network_type, num_classes):
         super(CNNSequence3D, self).__init__()
+
         if network_type in ['2L3DCNN', 'T2L3DCNN']:
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(28, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(1, 3, 3), stride=1, padding=0)
@@ -186,7 +214,7 @@ if __name__ == '__main__':
 
     # Build the model
     if network_type in ['2LCNN', '3LCNN']:
-        model = CNNSequence(network_type=network_type, num_classes=num_classes)
+        model = CNNSequence(time_window = 28,network_type=network_type, num_classes=num_classes)
     elif network_type in ['2L3DCNN', 'T2L3DCNN']:
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
     # Use Adam optimizer and CrossEntropyLoss
