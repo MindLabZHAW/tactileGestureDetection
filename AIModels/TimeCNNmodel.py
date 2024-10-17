@@ -33,9 +33,9 @@ time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 120
+n_epochs = 100
 
-network_type = '1L3DTCNN'
+network_type = '2L3DTCNN'
 train_all_data = False # train a model using all avaiable data
 normalization = False
 
@@ -45,19 +45,23 @@ class Time3DCNNSequence(nn.Module):
 
         if network_type == '1L3DTCNN':
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(28, 3, 3), stride=1, padding=0)
-            """       
-            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(1, 3, 3), stride=1, padding=0)
-            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(28, 1, 1), stride=1, padding=0) 
-            """
             
             # 定义 3D 池化层
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
         
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
+        elif network_type =='2L3DTCNN':     
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(3, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(5, 1, 1), stride=1, padding=0) 
+            
+            # 定义 3D 池化层
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
         
+            self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
+            self.fc = nn.Linear(32, num_classes)
+
         self.network_type = network_type
-        ## need to check output_size
 
     def forward(self, input):
   
@@ -66,6 +70,18 @@ class Time3DCNNSequence(nn.Module):
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状
             # x = nn.functional.relu(self.conv2(x))
+            # print("After conv2:", x.shape)  # 检查形状
+            x = self.global_max_pool(x)
+            # print("After MP1:", x.shape)  # 检查形状
+            x = self.flatten(x)
+            # x = x.view(x.size(0), -1)
+            # print("After Flatten:", x.shape)  # 检查形状
+            x = self.fc(x)
+        if self.network_type == '2L3DTCNN':
+            x = input.unsqueeze(1)
+            x = nn.functional.relu(self.conv1(x))
+            # print("After conv1:", x.shape)  # 检查形状
+            x = nn.functional.relu(self.conv2(x))
             # print("After conv2:", x.shape)  # 检查形状
             x = self.global_max_pool(x)
             # print("After MP1:", x.shape)  # 检查形状
