@@ -113,7 +113,7 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/1L3DTCNN_10_17_2024_13-47-21normalization.pth'
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_17_2024_19-43-34100Epoch.pth'
     model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
