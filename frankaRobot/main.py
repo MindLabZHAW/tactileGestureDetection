@@ -72,12 +72,22 @@ method = 'TCNN'
 Normalization = False
 
 
-# 归一化函数-RNN
-def z_score_normalization(data):
-    mean = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
-    normalized_data = (data - mean) / (std + 1e-5)  # 避免除以零
-    return normalized_data
+# 进行Z-score归一化-RNN
+def z_score_normalization(matrix):
+    # 创建一个新的矩阵以存储归一化结果
+    normalized_matrix = np.empty_like(matrix)
+
+    # 遍历每个特征（列）
+    for feature_index in range(matrix.shape[2]):  # 4个特征
+        # 计算每个特征的均值和标准差
+        mean = np.mean(matrix[:, :, feature_index], axis=0)
+        std = np.std(matrix[:, :, feature_index], axis=0)
+
+        # 归一化每个特征
+        for i in range(matrix.shape[1]):  # 遍历每一行
+            normalized_matrix[:, i, feature_index] = (matrix[:, i, feature_index] - mean[i]) / (std[i] + 1e-5)  # 防止除以零
+
+    return normalized_matrix
 
 if method == 'KNN':
     # Load the KNN model
