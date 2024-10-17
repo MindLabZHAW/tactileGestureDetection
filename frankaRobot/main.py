@@ -71,6 +71,14 @@ classes_num = 5
 method = 'TCNN'
 Normalization = False
 
+
+# 归一化函数-RNN
+def z_score_normalization(data):
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    normalized_data = (data - mean) / (std + 1e-5)  # 避免除以零
+    return normalized_data
+
 if method == 'KNN':
     # Load the KNN model
     # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
@@ -186,10 +194,11 @@ def contact_detection(data):
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
 
-
     elif method == 'RNN':
         new_block = np.column_stack((e,de,tau_J,tau_ext))
-        # print(f"new block is {new_block}")
+        print(f"new block is {new_block}")
+        normalized_new_block = z_score_normalization(new_block)
+        print(f"normalized_new_block is {normalized_new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
         window3 = window2
         window2 = window
