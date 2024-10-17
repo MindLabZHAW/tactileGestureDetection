@@ -68,7 +68,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'Freq'
+method = 'TCNN'
 Normalization = False
 
 if method == 'KNN':
@@ -91,7 +91,7 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_09_2024_17-34-391LTCNN.pth'
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_16_2024_14-18-24100Epoch.pth'
     model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
 
     # Set device for PyTorch models
@@ -104,7 +104,7 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_10_2024_17-25-56TImage50Epoch.pth'
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_16_2024_13-50-0860Epoch.pth'
     model = import_cnn_models(model_path, network_type='T2L3DCNN', num_classes=classes_num)
 
     # Set device for PyTorch models
