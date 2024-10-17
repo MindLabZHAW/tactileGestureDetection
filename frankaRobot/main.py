@@ -210,12 +210,12 @@ def contact_detection(data):
     elif method == 'RNN':
         new_block = np.column_stack((e,de,tau_J,tau_ext))
         print(f"new block is {new_block}")
-        normalized_new_block = z_score_normalization(new_block)
-        print(f"normalized_new_block is {normalized_new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
         window3 = window2
         window2 = window
         window = np.append(window[:, features_num:], new_block, axis=1)
+        if Normalization:
+            window = z_score_normalization(window)
 
         with torch.no_grad():
             # Prepare inputs
@@ -281,8 +281,13 @@ def contact_detection(data):
             noverlap = nperseg - 1
             data_matrix = [] 
             for feature_idx in range(window.shape[1]):
-                # f, t, Zxx = stft([:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
-                f, t, Zxx = stft(window[:, feature_idx], fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                signal = window[:, feature_idx]
+                if Normalization:
+                    signal_mean = np.mean(signal)
+                    signal_std = np.std(signal)
+                    signal = signal - signal_mean / (signal_std + 1e-5)
+                # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
+                f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
                 data_matrix.append(np.abs(Zxx))
         elif model.network_type == '3LCNN':
             # CWT
@@ -301,6 +306,10 @@ def contact_detection(data):
             for feature_idx in range(window.shape[1]):
                 T_matrix = np.zeros([T_window_size, T_window_num])
                 signal = window[:, feature_idx]
+                if Normalization:
+                    signal_mean = np.mean(signal)
+                    signal_std = np.std(signal)
+                    signal = signal - signal_mean / (signal_std + 1e-5)
                 for i in range(T_window_num):
                     T_matrix[:,i] = signal[i:i+T_window_size]
                 # print(T_matrix)
