@@ -77,15 +77,18 @@ def z_score_normalization(matrix):
     # 创建一个新的矩阵以存储归一化结果
     normalized_matrix = np.empty_like(matrix)
 
-    # 遍历每个特征（列）
-    for feature_index in range(matrix.shape[2]):  # 4个特征
-        # 计算每个特征的均值和标准差
-        mean = np.mean(matrix[:, :, feature_index], axis=0)
-        std = np.std(matrix[:, :, feature_index], axis=0)
+    # 遍历每行中的每个特征（每4个元素代表一个特征）
+    for row in range(matrix.shape[0]):  # 7行
+        for feature_index in range(4):  # 每个特征有4个值
+            # 提取该特征在28个样本中的所有值
+            feature_values = matrix[row, feature_index::4]  # 提取每4个元素
+            
+            # 计算均值和标准差
+            mean = np.mean(feature_values)
+            std = np.std(feature_values)
 
-        # 归一化每个特征
-        for i in range(matrix.shape[1]):  # 遍历每一行
-            normalized_matrix[:, i, feature_index] = (matrix[:, i, feature_index] - mean[i]) / (std[i] + 1e-5)  # 防止除以零
+            # 归一化
+            normalized_matrix[row, feature_index::4] = (feature_values - mean) / (std + 1e-5)  # 加上一个小常数以避免除以零
 
     return normalized_matrix
 
