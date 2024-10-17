@@ -71,6 +71,27 @@ classes_num = 5
 method = 'TCNN'
 Normalization = False
 
+
+# 进行Z-score归一化-RNN
+def z_score_normalization(matrix):
+    # 创建一个新的矩阵以存储归一化结果
+    normalized_matrix = np.empty_like(matrix)
+
+    # 遍历每行中的每个特征（每4个元素代表一个特征）
+    for row in range(matrix.shape[0]):  # 7行
+        for feature_index in range(4):  # 每个特征有4个值
+            # 提取该特征在28个样本中的所有值
+            feature_values = matrix[row, feature_index::4]  # 提取每4个元素
+            
+            # 计算均值和标准差
+            mean = np.mean(feature_values)
+            std = np.std(feature_values)
+
+            # 归一化
+            normalized_matrix[row, feature_index::4] = (feature_values - mean) / (std + 1e-5)  # 加上一个小常数以避免除以零
+
+    return normalized_matrix
+
 if method == 'KNN':
     # Load the KNN model
     # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
@@ -186,10 +207,11 @@ def contact_detection(data):
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
 
-
     elif method == 'RNN':
         new_block = np.column_stack((e,de,tau_J,tau_ext))
-        # print(f"new block is {new_block}")
+        print(f"new block is {new_block}")
+        normalized_new_block = z_score_normalization(new_block)
+        print(f"normalized_new_block is {normalized_new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
         window3 = window2
         window2 = window
