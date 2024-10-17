@@ -39,22 +39,9 @@ network_type = '1L3DTCNN'
 train_all_data = False # train a model using all avaiable data
 normalization = False
 
-class ZScoreNormalization(nn.Module):
-    def __init__(self):
-        super(ZScoreNormalization,self).__init__()
-
-    def forward(self,x):
-        mean = x.mean(dim=(0,2,3),keepdim=True)
-        std = x.std(dim=(0,2,3),keepdim=True)
-        return (x-mean)/(std + 1e-5)
-
-
 class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28) :
         super(Time3DCNNSequence, self).__init__()
-
-        if normalization:
-            self.normalization = ZScoreNormalization()
 
         if network_type == '1L3DTCNN':
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(28, 3, 3), stride=1, padding=0)
@@ -73,9 +60,7 @@ class Time3DCNNSequence(nn.Module):
         ## need to check output_size
 
     def forward(self, input):
-        if normalization:
-            x= self.normalization(x)
-            
+  
         if self.network_type == '1L3DTCNN':
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
