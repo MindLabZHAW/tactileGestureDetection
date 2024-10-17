@@ -92,7 +92,7 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_09_2024_17-34-391LTCNN.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/1L3DTCNN_10_17_2024_13-47-21normalization.pth'
     model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
@@ -106,7 +106,7 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_10_2024_17-25-56TImage50Epoch.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_17_2024_13-40-57normalization.pth'
     model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
     print(f'{method}-{model.network_type} model is loaded')
 
@@ -143,6 +143,7 @@ results = []
 # Create message for publishing model output (will be used in saceDataNode.py)
 model_msg = Floats()
 
+
 # Callback function for contact detection and prediction
 def contact_detection(data):
     global window, window2, window3, results, big_time_digits
@@ -156,18 +157,19 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
-    if Normalization == True:
-        # Min-Max Normalization
-        e_min, e_max = np.min(e), np.max(e)
-        de_min, de_max = np.min(de), np.max(de)
-        tau_J_min, tau_J_max = np.min(tau_J), np.max(tau_J)
-        tau_ext_min, tau_ext_max = np.min(tau_ext), np.max(tau_ext)
-        
-        # Normalize the data
-        e = (e - e_min) / (e_max - e_min)
-        de = (de - de_min) / (de_max - de_min)
-        tau_J = (tau_J - tau_J_min) / (tau_J_max - tau_J_min)
-        tau_ext = (tau_ext - tau_ext_min) / (tau_ext_max - tau_ext_min)
+    if Normalization:
+        mean_e, std_e = np.mean(e), np.std(e)
+        mean_de, std_de = np.mean(de), np.std(de)
+        mean_tau_J, std_tau_J = np.mean(tau_J), np.std(tau_J)
+        mean_tau_ext, std_tau_ext = np.mean(tau_ext), np.std(tau_ext)
+
+
+        e = (e - mean_e) / (std_e+ 1e-5)
+        de = (de - mean_de) / (std_de + 1e-5)
+        tau_J = (tau_J - mean_tau_J) / (std_tau_J+ 1e-5)
+        tau_ext = (tau_ext - mean_tau_ext) / (std_tau_ext + 1e-5)
+
+
     
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
