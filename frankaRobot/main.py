@@ -68,7 +68,7 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'Freq'
+method = 'TCNN'
 Normalization = False
 
 if method == 'KNN':

@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 # 13522+3381(0910新数据window切割)
 # 读取原始CSV文件
 # df = pd.read_csv('DATA/labeled_window_dataset.csv')
-df = pd.read_csv('DATA/labeled_window_dataset_Normalization.csv')
+df = pd.read_csv('DATA/4_labeled_window_dataset.csv')
 
 # 根据 block_id 进行分组
 grouped = df.groupby('window_id')
@@ -22,8 +22,5 @@ test_df = pd.concat(test_blocks).reset_index(drop=True)
 print('Size of test_df is ', test_df.shape)
 
 # 保存为新的CSV文件
-""" train_df.to_csv('DATA/labeled_window_dataset_train.csv', index=False)
-test_df.to_csv('DATA/labeled_window_dataset_test.csv', index=False) """
-
-train_df.to_csv('DATA/labeled_window_dataset_train_Normalization.csv', index=False)
-test_df.to_csv('DATA/labeled_window_dataset_test_Normalization.csv', index=False)
+train_df.to_csv('DATA/6_labeled_window_dataset_train.csv', index=False)
+test_df.to_csv('DATA/6_labeled_window_dataset_test.csv', index=False)
