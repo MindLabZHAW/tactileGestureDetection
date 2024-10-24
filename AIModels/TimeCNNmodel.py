@@ -33,9 +33,9 @@ time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 100
+n_epochs = 40
 
-network_type = '2L3DTCNN'
+network_type = '1L3DTCNN'
 train_all_data = False # train a model using all avaiable data
 normalization = False
 
@@ -125,8 +125,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_train.csv')
-    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_test.csv')
+    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_train_Normalization.csv')
+    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_test_Normalization.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)

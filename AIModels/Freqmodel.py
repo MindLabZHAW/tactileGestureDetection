@@ -24,8 +24,8 @@ time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 50
-network_type = 'T2L3DCNN'
+n_epochs = 150
+network_type = '2L3DCNN'
 train_all_data = False
 
 class CNNSequence(nn.Module):
