@@ -69,7 +69,7 @@ dof = 7
 features_num = 4
 classes_num = 5
 method = 'TCNN'
-Normalization = False
+Normalization = True
 
 
 # 进行Z-score归一化-RNN
@@ -113,8 +113,8 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2L3DTCNN_10_17_2024_19-43-34100Epoch.pth'
-    model = import_tcnn_models(model_path, network_type='2L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/1L3DTCNN_10_23_2024_14-59-34Normalization40.pth'
+    model = import_tcnn_models(model_path, network_type='1L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -127,7 +127,7 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_10_17_2024_13-40-57normalization.pth'
+    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_23_2024_13-23-46Normalization100.pth'
     model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
     print(f'{method}-{model.network_type} model is loaded')
 
@@ -178,20 +178,7 @@ def contact_detection(data):
     tau_J = np.array(data.tau_J)  
     tau_ext = np.array(data.tau_ext_hat_filtered)
 
-    if Normalization:
-        mean_e, std_e = np.mean(e), np.std(e)
-        mean_de, std_de = np.mean(de), np.std(de)
-        mean_tau_J, std_tau_J = np.mean(tau_J), np.std(tau_J)
-        mean_tau_ext, std_tau_ext = np.mean(tau_ext), np.std(tau_ext)
 
-
-        e = (e - mean_e) / (std_e+ 1e-5)
-        de = (de - mean_de) / (std_de + 1e-5)
-        tau_J = (tau_J - mean_tau_J) / (std_tau_J+ 1e-5)
-        tau_ext = (tau_ext - mean_tau_ext) / (std_tau_ext + 1e-5)
-
-
-    
     if method == 'KNN':
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
         # print(f"new data is {new_data}")
@@ -250,6 +237,10 @@ def contact_detection(data):
         new_block = np.expand_dims(np.column_stack((e,de,tau_J,tau_ext)), axis=0)
         # print(new_block.shape)
         window = np.append(window[1:, :, :], new_block, axis = 0)
+        if Normalization:
+            window_mean = np.mean(window, axis=0)
+            window_std = np.std(window, axis=0)
+            window = (window - window_mean) / (window_std + 1e-5)
         with torch.no_grad():
             # Prepare inputs
             # print(window.shape)
@@ -285,7 +276,7 @@ def contact_detection(data):
                 if Normalization:
                     signal_mean = np.mean(signal)
                     signal_std = np.std(signal)
-                    signal = signal - signal_mean / (signal_std + 1e-5)
+                    signal = (signal - signal_mean) / (signal_std + 1e-5)
                 # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
                 f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
                 data_matrix.append(np.abs(Zxx))
@@ -309,7 +300,7 @@ def contact_detection(data):
                 if Normalization:
                     signal_mean = np.mean(signal)
                     signal_std = np.std(signal)
-                    signal = signal - signal_mean / (signal_std + 1e-5)
+                    signal = (signal - signal_mean) / (signal_std + 1e-5)
                 for i in range(T_window_num):
                     T_matrix[:,i] = signal[i:i+T_window_size]
                 # print(T_matrix)
