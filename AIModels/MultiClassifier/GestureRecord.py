@@ -1,28 +1,48 @@
+"""
+通过用户输入手势名称并录入手势数据，进行特征提取并存储到手势字典中
+
+"""
+
 import numpy as np
 
-
+# 收集手势数据并提取相关特征
 class Gesture(self):
+    # 初始化：收集手势数据，
     def __init__(self, gesture_data):
         self.gesture_data = gesture_data
-        self.gesture_feature = np.zeros(sss)
+        self.gesture_feature = None
 
-        self.feature_extraction
+        self.feature_extraction()
     
+    # 从收集的手势数据中提取特征
     def feature_extraction(self):
         self.gesture_feature = embedding(self.gesture_data)
 
 
-def similarity_check():
+def record_gesture(gesture_name,gesture_data,gesture_dict):
+    """
+    记录手势数据并提取特征
+    :gesture_name: 手势名称
+    :gesture_data: 手势数据
+    :gesture_dict: 存储手势的字典
+    """
+    if gesture_name in gesture_dict:
+        print(f"{gesture_name} is already exist, please use another name")
+    else:
+        gesture = Gesture(gesture_data)
+        gesture_dict[gesture_name] = gesture.gesture_feature
+        print(f"Gesture {gesture_name} have been recorded")
 
 
-if __name__ == "__main__":
-    gesture_dict = {}
-    if inputGesture:
-        gesture_name = input("Please Enter a Gesture Name: ")
-        if gesture_name in gesture_dict.keys:
-            print(f"{gesture_name} is already exist, please use another name.")
-            gesture_name = input("Please Enter a Gesture Name: ")
-        gesture_data = record x10
-        gesture_dict[gesture_name] = Gesture(gesture_data)
-        gesture_dict[gesture_name].feature_extraction()
+# if __name__ == "__main__":
+#     # 一个字典存放手势数据，用用户输入的手势名称作key
+#     gesture_dict = {}
+#     if inputGesture:
+#         gesture_name = input("Please Enter a Gesture Name: ")
+#         if gesture_name in gesture_dict.keys:
+#             print(f"{gesture_name} is already exist, please use another name.")
+#             gesture_name = input("Please Enter a Gesture Name: ")
+#         gesture_data = record x10
+#         gesture_dict[gesture_name] = Gesture(gesture_data)
+#         gesture_dict[gesture_name].feature_extraction()
 
