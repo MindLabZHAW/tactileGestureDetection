@@ -29,7 +29,7 @@ class RBFNetwork:
         """
         similarity_scores = {}
         for gesture_name,feature in self.gesture_features_dict.items():
-            similarities = self.rbf(new_gesture_feature.reshape(1, -1), features).flatten()
+            similarities = self.rbf(new_gesture_feature.reshape(1, -1), feature).flatten()
             similarity_scores[gesture_name] = np.mean(similarities) # 计算每个手势类别相似度均值
         return similarity_scores
 
