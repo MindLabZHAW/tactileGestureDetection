@@ -4,20 +4,52 @@
 """
 
 import numpy as np
+import os
+
+import torch.nn as nn
+import torch.optim as optim
+
+class User(object):
+    def __init__(self, user_name, password='NotSet', storage_dir='user_data'):
+        self.user_name = user_name
+        self.password = password
+
+        self.gesture_dict = {}
+        self.gesture_num = len(self.gesture_dict)
+
+        self.gesture_storage_dir = os.path.join(storage_dir, self.username)
+        os.makedirs(self.storage_dir, exist_ok=True)
+
+    def get_gesture_info(self):
+        gesture_list = list(self.gesture_dict.keys())
+        print(f"Gesture list: {gesture_list}")
+        print(f"In total {self.gesture_num} gestures")
+
+    def add_gesture(self, gesture_name):
+        if gesture_name in self.gesture_dict:
+           print(f"Gesture '{gesture_name}' already exists for user '{self.user_name}'.") 
+           return
+        gesture = Gesture()
 
 # 收集手势数据并提取相关特征
-class Gesture(self):
+class Gesture(object):
     # 初始化：收集手势数据，
-    def __init__(self, gesture_data):
+    def __init__(self, gesture_name, gesture_data):
+        self.gesture_name = gesture_name
         self.gesture_data = gesture_data
-        self.gesture_feature = None
-
-        self.feature_extraction()
+        self.gesture_model = RBFNetwork() # 参数还没填写
+        
+        self.model_criterion = nn.CrossEntropyLoss()
+        self.model_optimizer = optim.Adam(self.gesture_model.parameters(), lr=0.001)
+        
     
-    # 从收集的手势数据中提取特征
-    def feature_extraction(self):
-        self.gesture_feature = embedding(self.gesture_data)
+    def classifier_train(self)：
+        # 使用self.gesture_data访问输入数据 其实还没想好数据该在哪一步进来
+        # 使用self.gesture_model实例化网络模型
+    
 
+class RBFNetwork(object):
+    # 网络类直接贴过来就行
 
 def record_gesture(gesture_name,gesture_data,gesture_dict):
     """
