@@ -93,136 +93,105 @@ class Gesture(object):
     
 
 class RBFNetwork:
-    """
-    RBFNetwork is designed to classify gestures by comparing new gestures to known gesture patterns.
-    It uses Radial Basis Functions (RBFs) as hidden units that calculate the similarity between inputs
-    and learned centers (prototypes). This binary classification network outputs YES or NO depending on
-    whether the new gesture matches a known gesture pattern.
-    
-    Parameters:
-        num_centers (int): Number of RBF centers to use, representing prototypes of each gesture class.
-        num_classes (int): Number of output classes (2 for binary classification: YES/NO).
-        flatten_mode (str): Mode to preprocess input data, flattening or reshaping as specified.
-    """
+    def __init__(self, rho=0.7, epsilon=0.5, v0=0.1):
+        # 初始化RBF网络参数
+        self.rho = rho       # 输入相似度阈值
+        self.epsilon = epsilon  # 输出相似度阈值
+        self.v0 = v0         # 初始偏差值
+        self.centers = []    # 存储聚类中心
+        self.variances = []  # 存储每个聚类的方差
+        self.weights = None  # 存储输出层的权重
 
-    def __init__(self,num_centers,num_classes,flatten_mode = "flatten"):
-        """
-        Initializes the RBFNetwork, setting the number of centers and classes.
-        Also initializes parameters for the centers, sigma values, and weights, which will be learned.
-        
-        Parameters:
-            num_centers (int): Number of RBF centers, allowing the network to capture intra-class variability.
-            num_classes (int): Number of output classes (2 for binary classification).
-            flatten_mode (str): Specifies how input data will be preprocessed for the network.
-        """
-        self.num_centers = num_centers
-        self.num_classes = num_classes
-        self.flatten_mode = flatten_mode
-        self.num_features = None
-        self.centers = None
-        self.sigmas = np.ones(num_centers)  # 初始化标准差
-        self.weights = None
+    def _input_similarity(self, x, center, variance):
+        # 计算输入样本x与聚类中心的相似度
+        similarity = np.exp(-np.sum(((x - center) / variance) ** 2))
+        # print(f"_input_similarity -> x: {x}, center: {center}, variance: {variance}, similarity: {similarity}")
+        return similarity
 
+    def _output_similarity(self, y, cluster_y):
+        # 计算输出样本y与聚类输出的相似度
+        similarity = np.sum(np.minimum(y, cluster_y)) / np.sum(np.maximum(y, cluster_y))
+        # print(f"_output_similarity -> y: {y}, cluster_y: {cluster_y}, similarity: {similarity}")
+        return similarity
 
-    def preprocess_input(self, data):
-        """
-        Preprocesses the input data based on the specified flatten_mode.
-        
-        Parameters:
-            data (ndarray): Input gesture data in original shape.
-        
-        Returns:
-            ndarray: Processed data in the specified format (e.g., flattened to 1D).
-        """
-        processed_data = reshape_data(data, flatten_mode=self.flatten_mode)
-        self.num_features = processed_data.size if self.num_features is None else self.num_features
-        return processed_data
+    def _add_cluster(self, x, y):
+        # 如果没有找到合适的聚类，则创建新聚类
+        self.centers.append(x)  # 新聚类中心为当前样本
+        self.variances.append(np.full(x.shape, self.v0))  # 初始化方差
+        # print(f"_add_cluster -> New center added: {x}, variance: {self.variances[-1]}")
+        return y
 
+    def _update_cluster(self, x, y, cluster_idx):
+        # 更新已有聚类的中心和方差
+        n = len(self.centers[cluster_idx])  # 当前聚类中样本数量
+        old_center = self.centers[cluster_idx].copy()
+        old_variance = self.variances[cluster_idx].copy()
+        
+        # 更新聚类中心
+        self.centers[cluster_idx] = (n * self.centers[cluster_idx] + x) / (n + 1)
+        # 更新方差
+        self.variances[cluster_idx] = np.sqrt(((self.variances[cluster_idx]**2) * n + (x - self.centers[cluster_idx])**2) / (n + 1))
+        
+        # print(f"_update_cluster -> Old center: {old_center}, New center: {self.centers[cluster_idx]}")
+        # print(f"_update_cluster -> Old variance: {old_variance}, New variance: {self.variances[cluster_idx]}")
 
-    def rbf_function(self, x, center, sigma):
-        """
-        Calculates the RBF output for a given input x and a center. 
-        This function determines similarity between x and center.
-        
-        Parameters:
-            x (ndarray): Input data point.
-            center (ndarray): The center point for the RBF function.
-            sigma (float): The width of the RBF function.
-        
-        Returns:
-            float: RBF similarity value between x and the center.
-        """
-        return np.exp(-np.linalg.norm(x - center)**2 / (2 * sigma**2))
+    def fit(self, X, y):
+        # 训练RBF网络
+        cluster_labels = []
+        for i, x in enumerate(X):
+            max_input_sim, best_cluster = -1, -1
+            # print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
+            
+            # 查找最佳聚类
+            for idx, center in enumerate(self.centers):
+                input_sim = self._input_similarity(x, center, self.variances[idx])  # 输入相似度
+                output_sim = self._output_similarity(y[i], cluster_labels[idx])  # 输出相似度
+                # 如果相似度超过阈值，则更新最佳聚类
+                # print(f"fit -> Cluster {idx}: input_sim: {input_sim}, output_sim: {output_sim}")
+                if input_sim >= self.rho and output_sim >= self.epsilon:
+                    if input_sim > max_input_sim:
+                        max_input_sim, best_cluster = input_sim, idx
+                        # print(f"fit -> Updated best cluster to {best_cluster} with input_sim: {max_input_sim}")
 
-    def calculate_hidden_layer(self, X):
-        """
-        Computes the hidden layer matrix, where each entry represents the similarity 
-        between a sample in X and a center in the RBF layer.
-        
-        Parameters:
-            X (ndarray): Batch of input samples.
-        
-        Returns:
-            ndarray: Hidden layer output with shape (number of samples, num_centers).
-        """
+            # 如果没有找到合适的聚类，则创建新聚类
+            if best_cluster == -1:
+                cluster_labels.append(self._add_cluster(x, y[i]))
+                # print(f"fit -> Created new cluster for sample {i}")
+            else:
+                self._update_cluster(x, y[i], best_cluster)
+                # print(f"fit -> Updated cluster {best_cluster} for sample {i}")
 
-        hidden_layer = np.zeros((X.shape[0], self.num_centers))
-        for i, sample in enumerate(X):
-            for j, center in enumerate(self.centers):
-                hidden_layer[i, j] = self.rbf_function(sample, center, self.sigmas[j])
-        return hidden_layer
+        # 计算隐藏层输出并优化权重
+        # print("--------Calculating hidden layer output--------")
+        hidden_layer_output = np.array([
+            [self._input_similarity(x, center, var) for center, var in zip(self.centers, self.variances)]
+            for x in X
+        ])
+        # print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
+        
+        # 使用伪逆计算输出层的权重
+        self.weights = np.linalg.pinv(hidden_layer_output) @ y
+        # print(f"fit -> Calculated weights: {self.weights}")
 
     def predict(self, X):
-        """
-        Predicts class labels (YES/NO) for new gesture inputs by calculating
-        similarity to known gestures and using the learned weights.
+        # 使用训练好的模型进行预测
+        hidden_layer_output = np.array([
+            [self._input_similarity(x, center, var) for center, var in zip(self.centers, self.variances)]
+            for x in X
+        ])
+        # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
         
-        Parameters:
-            X (ndarray): Batch of new input gestures.
-        
-        Returns:
-            ndarray: Predicted class labels (1 for YES, 0 for NO).
-        """
-        X_processed = np.array([self.preprocess_input(sample) for sample in X])
-        hidden_layer = self.calculate_hidden_layer(X_processed)
-        scores = np.dot(hidden_layer, self.weights)
-        return (scores > 0).astype(int) # 将scores的元素与 0 比较，并将结果转换为整数格式（0或1）
+        # 输出大于0.5的预测为10（YES），否则为-1（NO）
+        predictions = np.where(hidden_layer_output @ self.weights >= 0.5, 10, -1)
+        # print(f"predict -> Predictions: {predictions}")
+        return predictions
 
-    def train(self, X, y, lr=0.01, epochs=100):
-        """
-        Trains the RBF network using input gestures (X) and binary labels (y).
-        Adjusts weights and centers to minimize classification error over epochs.
-        
-        Args:
-            X (np.array): Training samples for gestures.
-            y (np.array): Binary labels, where 1 indicates matching gesture, 0 for non-matching.
-            lr (float): Learning rate for weight updates.
-            epochs (int): Number of training iterations.
-        """
-        X_processed = np.array([self.preprocess_input(sample) for sample in X])
-        if self.centers is None:
-            self.centers = np.random.randn(self.num_centers, self.num_features)
-        if self.weights is None:
-            self.weights = np.random.randn(self.num_centers, self.num_classes)
+    def get_params(self, deep=True):
+        return {"rho": self.rho, "epsilon": self.epsilon, "v0": self.v0}
 
-        for epoch in range(epochs):
-            hidden_layer = self.calculate_hidden_layer(X_processed)
-            output = np.dot(hidden_layer, self.weights)
-            error = y - output
-            self.weights += lr * np.dot(hidden_layer.T, error)
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}, Error: {np.mean(error ** 2)}")
-
-
-# if __name__ == "__main__":
-#     # 一个字典存放手势数据，用用户输入的手势名称作key
-#     gesture_dict = {}
-#     if inputGesture:
-#         gesture_name = input("Please Enter a Gesture Name: ")
-#         if gesture_name in gesture_dict.keys:
-#             print(f"{gesture_name} is already exist, please use another name.")
-#             gesture_name = input("Please Enter a Gesture Name: ")
-#         gesture_data = record x10
-#         gesture_dict[gesture_name] = Gesture(gesture_data)
-#         gesture_dict[gesture_name].feature_extraction()
+    def set_params(self, **params):
+        for key, value in params.items():
+            setattr(self, key, value)
+        return self
+   
 
