@@ -17,11 +17,11 @@ print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 
 # 录入新手势
 gesture_name = input("Please Enter a Gesture Name: ")
-gesture_data =  #补充
+gesture_data =  
 record_gesture(gesture_name, gesture_data, gesture_dict)
 
 # 初始化 RBF 网络
-rbf_network = RBFNetwork(gesture_dict, sigma=1.0)
+rbf_network = RBFNetwork()
 
 
 def contact_multiclassifier(data):
@@ -34,7 +34,7 @@ def contact_multiclassifier(data):
     # print("e is ", e)
     de = np.array(data.dq_d) - np.array(data.dq)
     tau_J = np.array(data.tau_J) 
-    tau_ext = np.array(data.tau_ext_hat_filtered) 3
+    tau_ext = np.array(data.tau_ext_hat_filtered) 
 
     new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
     # print(f"new row is {new_row}")

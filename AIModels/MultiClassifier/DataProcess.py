@@ -90,7 +90,7 @@ class make_folder_dataset:
 
     def get_labels(self):
         # Load the gesture labeled (contact- noncontact) data
-        gesture_label_path = os.path.join(self.path, 'gesture_label.csv')
+        gesture_label_path = os.path.join(self.path, 'true_label.csv')
         
         # Initialize DataFrame for labels
         self.df['label_idx'] = 0
@@ -120,7 +120,7 @@ class make_folder_dataset:
                 else:
                     self.df['time'] = self.df['time'] - self.df['time'][0]
                     gesture_count = 0
-                    self.df['label'] = 0
+                    self.df['label_idx'] = 0
 
                     for i in range(self.df['time'].shape[0]):
                         if gesture_count >= len(gesture_events_index):
@@ -177,12 +177,12 @@ def windowData(label_data, data_save_dir, window_size=28, step_size=14):
         unique_label_name = window['label_name'].unique()
         if len(unique_label_name) == 1 and unique_label_name[0] == 'NC':
             window_label_name = 'NC'
-            window_label_idx = 0
+            window_label_idx = -1
         else:
             # 如果不是全为 'NC'，取窗口内唯一的非 'NC' 的 label_name
             non_nc_label_name = [t for t in unique_label_name if t != 'NC']
             window_label_name = non_nc_label_name[0] if non_nc_label_name else 'NC'
-            window_label_idx = 1 if non_nc_label_name else 0
+            window_label_idx = 1 if non_nc_label_name else -1
         
         # 给窗口内所有行赋值 window_gesture_idx, window_gesture_name
         window['window_gesture_idx'] = window_label_idx
@@ -195,7 +195,7 @@ def windowData(label_data, data_save_dir, window_size=28, step_size=14):
     windowed_df = pd.concat(windowed_data, ignore_index=True)
 
     
-    data_save_name =  data_save_dir + '2_labeled_window_dataset.csv'
+    data_save_name =  data_save_dir + '/2_labeled_window_dataset.csv'
     if os.path.exists(data_save_name):
         os.remove(data_save_name)
 

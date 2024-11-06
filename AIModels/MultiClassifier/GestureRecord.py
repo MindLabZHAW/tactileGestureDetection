@@ -5,9 +5,11 @@
 
 import numpy as np
 import os
+import pandas as pd
 
-import torch.nn as nn
-import torch.optim as optim
+from sklearn.metrics import make_scorer, accuracy_score
+from sklearn.model_selection import train_test_split
+import numpy as np
 
 import DataProcess as DP
 
@@ -17,7 +19,11 @@ window_size = 28
 step_size = 14
 flatten_mode = "flatten"
 
-def reshape_data(data, flatten_mode="flatten"):
+rho=1.9
+epsilon=0
+v0=50000 # how to initialize in future
+
+def preprocess_data(data, flatten_mode):
     """
     根据 flatten_mode 参数选择不同的数据展平或矩阵保留方式。
     参数:
@@ -43,7 +49,7 @@ def reshape_data(data, flatten_mode="flatten"):
         # 4 个特征，每个特征是一个 7x28 的矩阵
         return data.reshape(4, 7 * 28)  # 2D array, shape (4, 196)
     else:
-        raise ValueError("Invalid flatten_mode. Choose from 'flatten', '28x4x7', '7x(4x28)', '4x(7x28)'.")
+        raise ValueError("Invalid flatten_mode. Choose from 'flatten', '28x4x7', '7x(4x28)', '4x(7x28)'.")   
 
 
 
@@ -70,7 +76,7 @@ class User(object):
         else:
             gesture_label_data = DP.labelData(gesture_name, gesture_data_raw_dir, gesture_data_process_save_dir)
             gesture_window_data = DP.windowData(gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
-            gesture = Gesture(gesture_name=gesture_name, gesture_training_data=gesture_window_data)
+            gesture = Gesture(gesture_name=gesture_name, gesture_data=gesture_window_data)
             self.gesture_dict[gesture_name] = gesture
             print(f"Gesture '{gesture_name}' added for user '{self.user_name}'.")
 
@@ -80,19 +86,57 @@ class Gesture(object):
     def __init__(self, gesture_name:str, gesture_data):
         self.gesture_name = gesture_name    
         self.gesture_data = gesture_data # is a dataframe for labeled_window_data
-        ## TODO: here initiall the model, train it and save it
-        self.gesture_model = RBFNetwork(num_centers, num_classes) # 参数还没填写
-        RBFNetwork.train()
-        self.model_criterion = nn.CrossEntropyLoss()
-        self.model_optimizer = optim.Adam(self.gesture_model.parameters(), lr=0.001)
+        # here initiall the model, train it and save it
+        self.gesture_model = RBFNetwork(rho=rho, epsilon=epsilon, v0=v0) # 参数还没填写
+        self.data_split()
+        self.classifier_train()
+        self.classifier_test()
+        print(f'Gesture {self.gesture_name} is established!')
         
-    
+    def data_split(self):
+        # 根据 block_id 进行分组
+        grouped = self.gesture_data.groupby('window_id')
+        # 将分组后的数据块列表化
+        windows = [group.reset_index(drop=True) for _, group in grouped]
+        train_windows, test_windows = train_test_split(windows, test_size=0.2, random_state=42)
+        X_train = []
+        y_train = []
+        X_test = []
+        y_test = []
+        for window in train_windows:
+            # print(window)
+            preprocessed_window = preprocess_data(data = np.array(window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']).values),
+                                                  flatten_mode = flatten_mode)
+            X_train.append(preprocessed_window)
+            y_train.append(window.loc[0,'window_gesture_idx'])
+        for window in test_windows:
+            preprocessed_window = preprocess_data(data = np.array(window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']).values),
+                                                  flatten_mode = flatten_mode)
+            X_test.append(preprocessed_window)
+            y_test.append(window.loc[0,'window_gesture_idx'])
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_test = X_test
+        self.y_test = y_test
+        print(f"y_train is {self.y_train}")
+        # print(type(self.X_train[0][0]))
+        # print(type(self.y_train[0]))
+        print(f"y_test is {self.y_test}")
+        
     def classifier_train(self):
-        # 使用self.gesture_data访问输入数据 其实还没想好数据该在哪一步进来
-        # 使用self.gesture_model实例化网络模型
+        self.gesture_model.fit(self.X_train, self.y_train)
+
+    def classifier_test(self):
+        self.y_predict = self.gesture_model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, self.y_predict)
+
+        print(f"y_predictions is {self.y_predict}")
+        print(f"y_test is {self.y_test}")
+        print("Test Results:", ["YES" if pred == 1 else "NO" for pred in self.y_predict])
+        print(f"Accuracy: {accuracy:.2f}")
     
 
-class RBFNetwork:
+class RBFNetwork(object):
     def __init__(self, rho=0.7, epsilon=0.5, v0=0.1):
         # 初始化RBF网络参数
         self.rho = rho       # 输入相似度阈值
@@ -102,10 +146,12 @@ class RBFNetwork:
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
 
-    def _input_similarity(self, x, center, variance):
+    def _input_similarity(self, x, center,variance):
         # 计算输入样本x与聚类中心的相似度
-        similarity = np.exp(-np.sum(((x - center) / variance) ** 2))
-        # print(f"_input_similarity -> x: {x}, center: {center}, variance: {variance}, similarity: {similarity}")
+        # print(-np.linalg.norm(x - center))
+        similarity = np.exp(-np.linalg.norm(x - center) ** 2 / (2 * variance ** 2))
+        # similarity = np.corrcoef(x,center)[0,1]
+        # print(f"_input_similarity -> x: {x}, center: {center}, variance :{variance} ,similarity: {similarity}")
         return similarity
 
     def _output_similarity(self, y, cluster_y):
@@ -117,30 +163,30 @@ class RBFNetwork:
     def _add_cluster(self, x, y):
         # 如果没有找到合适的聚类，则创建新聚类
         self.centers.append(x)  # 新聚类中心为当前样本
-        self.variances.append(np.full(x.shape, self.v0))  # 初始化方差
+        self.variances.append(self.v0)  # 初始化方差
         # print(f"_add_cluster -> New center added: {x}, variance: {self.variances[-1]}")
         return y
 
     def _update_cluster(self, x, y, cluster_idx):
         # 更新已有聚类的中心和方差
         n = len(self.centers[cluster_idx])  # 当前聚类中样本数量
-        old_center = self.centers[cluster_idx].copy()
-        old_variance = self.variances[cluster_idx].copy()
+        old_center = self.centers[cluster_idx]
+        old_variance = self.variances[cluster_idx]
         
         # 更新聚类中心
         self.centers[cluster_idx] = (n * self.centers[cluster_idx] + x) / (n + 1)
         # 更新方差
-        self.variances[cluster_idx] = np.sqrt(((self.variances[cluster_idx]**2) * n + (x - self.centers[cluster_idx])**2) / (n + 1))
+        self.variances[cluster_idx] = np.sqrt(((self.variances[cluster_idx]**2) * n + np.linalg.norm(x - self.centers[cluster_idx])**2) / (n + 1))
         
-        # print(f"_update_cluster -> Old center: {old_center}, New center: {self.centers[cluster_idx]}")
-        # print(f"_update_cluster -> Old variance: {old_variance}, New variance: {self.variances[cluster_idx]}")
+        print(f"_update_cluster -> Old center: {old_center}, New center: {self.centers[cluster_idx]}")
+        print(f"_update_cluster -> Old variance: {old_variance}, New variance: {self.variances[cluster_idx]}")
 
     def fit(self, X, y):
         # 训练RBF网络
         cluster_labels = []
         for i, x in enumerate(X):
             max_input_sim, best_cluster = -1, -1
-            # print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
+            print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
             
             # 查找最佳聚类
             for idx, center in enumerate(self.centers):
@@ -156,42 +202,46 @@ class RBFNetwork:
             # 如果没有找到合适的聚类，则创建新聚类
             if best_cluster == -1:
                 cluster_labels.append(self._add_cluster(x, y[i]))
-                # print(f"fit -> Created new cluster for sample {i}")
+                print(f"fit -> Created new cluster for sample {i}")
             else:
                 self._update_cluster(x, y[i], best_cluster)
                 # print(f"fit -> Updated cluster {best_cluster} for sample {i}")
 
         # 计算隐藏层输出并优化权重
-        # print("--------Calculating hidden layer output--------")
+        print("--------Calculating hidden layer output--------")
         hidden_layer_output = np.array([
-            [self._input_similarity(x, center, var) for center, var in zip(self.centers, self.variances)]
+            [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
-        # print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
+        print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
         
         # 使用伪逆计算输出层的权重
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
-        # print(f"fit -> Calculated weights: {self.weights}")
+        print(f"fit -> Calculated weights: {self.weights}")
 
     def predict(self, X):
         # 使用训练好的模型进行预测
         hidden_layer_output = np.array([
-            [self._input_similarity(x, center, var) for center, var in zip(self.centers, self.variances)]
+            [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
         
-        # 输出大于0.5的预测为10（YES），否则为-1（NO）
-        predictions = np.where(hidden_layer_output @ self.weights >= 0.5, 10, -1)
+        # 输出大于0.5的预测为1（YES），否则为-1（NO）
+        predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
         # print(f"predict -> Predictions: {predictions}")
         return predictions
-
-    def get_params(self, deep=True):
-        return {"rho": self.rho, "epsilon": self.epsilon, "v0": self.v0}
-
-    def set_params(self, **params):
-        for key, value in params.items():
-            setattr(self, key, value)
-        return self
    
+
+if __name__ == '__main__':
+    UName = 'TestU1'
+    UPass = '123465'
+    CurrentUser = User(user_name=UName, password=UPass)
+    CurrentUser.get_gesture_info
+    # add_gesture_flag = input('Add new gesture?(Y/n):')
+    add_gesture_flag = 'Y'
+    if add_gesture_flag == 'Y':
+        GName = 'TestG1'
+        # Data Recording Progress should be added here
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7G-S1', CurrentUser.gesture_storage_dir)
 

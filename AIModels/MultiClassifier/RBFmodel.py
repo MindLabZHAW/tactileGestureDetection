@@ -1,35 +1,6 @@
 import numpy as np
 from scipy.linalg import pinv
 
-def preprocess_data(data, flatten_mode="flatten"):
-    """
-    根据 flatten_mode 参数选择不同的数据展平或矩阵保留方式。
-    参数:
-        data: 输入的原始数据 (28, 4, 7) 格式
-        flatten_mode: 选择展平方式的字符串
-                      "flatten" - 完全展平为 1D
-                      "28x4x7" - 保持原始三维格式
-                      "7x(4x28)" - 7 行，每行包含 4x28 特征的 2D 矩阵
-                      "4x(7x28)" - 4 行，每行包含 7x28 特征的 2D 矩阵
-    返回值:
-        处理后的数据
-    """
-    if flatten_mode == "flatten":
-        # 完全展平
-        return data.flatten()  # 1D array, shape (784,)
-    elif flatten_mode == "28x4x7":
-        # 保持原始三维结构
-        return data  # 3D array, shape (28, 4, 7)
-    elif flatten_mode == "7x(4x28)":
-        # 7 个关节点，每个关节一个 (4*28) 的特征向量
-        return data.reshape(7, 4 * 28)  # 2D array, shape (7, 112)  
-    elif flatten_mode == "4x(7x28)":
-        # 4 个特征，每个特征是一个 7x28 的矩阵
-        return data.reshape(4, 7 * 28)  # 2D array, shape (4, 196)
-    else:
-        raise ValueError("Invalid flatten_mode. Choose from 'flatten', '28x4x7', '7x(4x28)', '4x(7x28)'.")
-
-
 class RBFNetwork:
     def __init__(self, rho=0.7, epsilon=0.5, v0=0.1):
         # 初始化RBF网络参数

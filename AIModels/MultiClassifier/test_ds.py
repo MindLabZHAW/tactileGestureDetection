@@ -1,2 +1,3 @@
-a = {"a":None, "b" : 2}
-print(None)
+import numpy as np
+a  = np.array([3,4])
+print(np.linalg.norm(a))
