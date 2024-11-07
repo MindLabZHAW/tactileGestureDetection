@@ -35,7 +35,6 @@ def preprocess_data(window_df, flatten_mode):
                       "flatten" - 完全展平为 1D
                       "28x4x7" - 保持原始三维格式
                       "7x(4x28)" - 7 行，每行包含 4x28 特征的 2D 矩阵
-                      "4x(7x28)" - 4 行，每行包含 7x28 特征的 2D 矩阵
     返回值:
         处理后的数据
     """
@@ -56,18 +55,17 @@ def preprocess_data(window_df, flatten_mode):
         data = window_df.loc[:, flat_joints_colums].values.flatten()
         return np.array(data)  # 1D array, shape (784,)
     elif flatten_mode == "28x4x7":
-        # 保持原始三维结构
-        return data  # 3D array, shape (28, 4, 7)
+        flat_joints_colums = sum(joints_colums,[])
+        data_i = window_df[flat_joints_colums].values
+        data = data_i.reshape(-1, dof, num_features)
+        return np.array(data)  # 3D array, shape (28, 4, 7)
     elif flatten_mode == "7x(4*28)":
         # 7 个关节点，每个关节一个 (4*28) 的特征向量
         data = np.zeros((dof,num_features * window_df.shape[0])) # generate a initial numpy array 7x(4*28)
         for i, joint_colums in enumerate(joints_colums):
             data_i = window_df.loc[:, joint_colums].values.flatten()
             data[i,:] = data_i
-        return data # 2D array, shape (7, 112)  
-    elif flatten_mode == "4x(7x28)":
-        # 4 个特征，每个特征是一个 7x28 的矩阵
-        return data.reshape(4, 7 * 28)  # 2D array, shape (4, 196)
+        return np.array(data) # 2D array, shape (7, 112)  
     else:
         raise ValueError("Invalid flatten_mode. Choose from 'flatten', '28x4x7', '7x(4x28)', '4x(7x28)'.")   
 
