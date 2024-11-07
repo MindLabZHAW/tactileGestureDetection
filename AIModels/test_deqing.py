@@ -1,6 +1,7 @@
-import pandas as pd
+import pickle
+from GestureRecord.py import Gesture
 
-blocked_data = pd.read_csv("DATA/tactile_dataset_block_train.csv")
-grouped = blocked_data.groupby('block_id')
-for blockid, block in grouped:
-    print('block_id is ',blockid,'lenth is ', block.shape[0])
+with open('user_data\TestU1\TestG1.pickle', 'rb') as file:
+    Gesture_load = pickle.load(file)
+
+print(Gesture_load)

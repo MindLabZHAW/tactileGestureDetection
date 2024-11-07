@@ -6,24 +6,27 @@
 import numpy as np
 import os
 import pandas as pd
+import pickle
 
 from sklearn.metrics import make_scorer, accuracy_score
 from sklearn.model_selection import train_test_split
 import numpy as np
 
-import DataProcess as DP
+import DataReader as DP
 
 # define hyperparameters for training data
 global window_size, step_size
 window_size = 28
 step_size = 14
 flatten_mode = "flatten"
+num_features = 4
+dof = 7
 
 rho=1.9
 epsilon=0
 v0=50000 # how to initialize in future
 
-def preprocess_data(data, flatten_mode):
+def preprocess_data(window_df, flatten_mode):
     """
     根据 flatten_mode 参数选择不同的数据展平或矩阵保留方式。
     参数:
@@ -36,15 +39,32 @@ def preprocess_data(data, flatten_mode):
     返回值:
         处理后的数据
     """
+    joint0_colums = ['e0','de0','tau_J0','tau_ext0']
+    joint1_colums = ['e1','de1','tau_J1','tau_ext1']
+    joint2_colums = ['e2','de2','tau_J2','tau_ext2']
+    joint3_colums = ['e3','de3','tau_J3','tau_ext3']
+    joint4_colums = ['e4','de4','tau_J4','tau_ext4']
+    joint5_colums = ['e5','de5','tau_J5','tau_ext5']
+    joint6_colums = ['e6','de6','tau_J6','tau_ext6']
+
+    joints_colums = [joint0_colums, joint1_colums, joint2_colums, joint3_colums, joint4_colums, joint5_colums, joint6_colums]
+
+    # print(window_df)
     if flatten_mode == "flatten":
-        # 完全展平
-        return data.flatten()  # 1D array, shape (784,)
+        # 完全展平(4*7*28)
+        flat_joints_colums = sum(joints_colums,[])
+        data = window_df.loc[:, flat_joints_colums].values
+        return np.array(data)  # 1D array, shape (784,)
     elif flatten_mode == "28x4x7":
         # 保持原始三维结构
         return data  # 3D array, shape (28, 4, 7)
-    elif flatten_mode == "7x(4x28)":
+    elif flatten_mode == "7x(4*28)":
         # 7 个关节点，每个关节一个 (4*28) 的特征向量
-        return data.reshape(7, 4 * 28)  # 2D array, shape (7, 112)  
+        data = np.zeros((dof,num_features * window_df.shape[0])) # generate a initial numpy array 7x(4*28)
+        for i, joint_colums in enumerate(joints_colums):
+            data_i = window_df.loc[:, joint_colums].values.flatten()
+            data[i,:] = data_i
+        return data # 2D array, shape (7, 112)  
     elif flatten_mode == "4x(7x28)":
         # 4 个特征，每个特征是一个 7x28 的矩阵
         return data.reshape(4, 7 * 28)  # 2D array, shape (4, 196)
@@ -71,6 +91,7 @@ class User(object):
         print(f"In total {self.gesture_num} gestures")
 
     def add_gesture(self, gesture_name, gesture_data_raw_dir, gesture_data_process_save_dir):
+        save = ''
         if gesture_name in self.gesture_dict:
             print(f"Gesture '{gesture_name}' already exists for user '{self.user_name}'.") 
         else:
@@ -78,6 +99,10 @@ class User(object):
             gesture_window_data = DP.windowData(gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
             gesture = Gesture(gesture_name=gesture_name, gesture_data=gesture_window_data)
             self.gesture_dict[gesture_name] = gesture
+            save = input('Do you wish to save this gesture?(Y/n): ')
+            if save == 'Y':
+                with open(os.path.join(self.gesture_storage_dir, f'{gesture_name}.pickle'),"wb") as file:
+                    pickle.dump(gesture,file)
             print(f"Gesture '{gesture_name}' added for user '{self.user_name}'.")
 
 # 收集手势数据并提取相关特征
@@ -88,12 +113,12 @@ class Gesture(object):
         self.gesture_data = gesture_data # is a dataframe for labeled_window_data
         # here initiall the model, train it and save it
         self.gesture_model = RBFNetwork(rho=rho, epsilon=epsilon, v0=v0) # 参数还没填写
-        self.data_split()
+        self._data_split()
         self.classifier_train()
         self.classifier_test()
         print(f'Gesture {self.gesture_name} is established!')
         
-    def data_split(self):
+    def _data_split(self):
         # 根据 block_id 进行分组
         grouped = self.gesture_data.groupby('window_id')
         # 将分组后的数据块列表化
@@ -105,12 +130,12 @@ class Gesture(object):
         y_test = []
         for window in train_windows:
             # print(window)
-            preprocessed_window = preprocess_data(data = np.array(window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']).values),
+            preprocessed_window = preprocess_data(window_df = window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']),
                                                   flatten_mode = flatten_mode)
             X_train.append(preprocessed_window)
             y_train.append(window.loc[0,'window_gesture_idx'])
         for window in test_windows:
-            preprocessed_window = preprocess_data(data = np.array(window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']).values),
+            preprocessed_window = preprocess_data(window_df = window.drop(columns=['label_idx','label_name','window_id','window_gesture_idx', 'window_gesture_name']),
                                                   flatten_mode = flatten_mode)
             X_test.append(preprocessed_window)
             y_test.append(window.loc[0,'window_gesture_idx'])
@@ -229,6 +254,16 @@ class RBFNetwork(object):
         
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
+        # print(f"predict -> Predictions: {predictions}")
+        return predictions
+    
+    def single_predict(self, x):
+        # 使用训练好的模型进行预测
+        hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
+        # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
+        
+        # 输出大于0.5的预测为1（YES），否则为-1（NO）
+        predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
         # print(f"predict -> Predictions: {predictions}")
         return predictions
    

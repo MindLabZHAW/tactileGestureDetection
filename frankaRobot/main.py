@@ -35,6 +35,7 @@ sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros
 """
 
 import os
+import pickle
 from threading import Event
 import numpy as np
 import pandas as pd
@@ -58,6 +59,8 @@ from franka_interface_msgs.msg import RobotState
 from frankapy import FrankaArm
 
 from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
+from AIModels.MultiClassifier.GestureRecord import Gesture, RBFNetwork
+
 
 # Set the main path
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
@@ -68,8 +71,9 @@ window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'TCNN'
-Normalization = True
+method = 'Freq'
+Normalization = False
+MultiClassifier = True
 
 
 # 进行Z-score归一化-RNN
@@ -140,6 +144,10 @@ elif method == 'Freq':
     model = model.to(device)
     transform = transforms.Compose([transforms.ToTensor()]) # Raw input is (H,W,C) so use ToTensor() to transform to (C,H,W)
 
+# Load Multi Classifier Models
+if MultiClassifier:
+    with open('user_data\TestU1\TestG1.pickle', 'rb') as file:
+        Gesture_load = pickle.load(file)
 
 
 # Prepare window to collect features
@@ -325,11 +333,21 @@ def contact_detection(data):
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
 
-
+    if MultiClassifier:
+        label_map_MC = { 0:"NoContact",1:"Contact", 2:"Contact", 3:"Contact", 4:"Contact"}
+        touch_type = label_map_MC[touch_type_idx]  # Get the actual touch type label in MultiClassifier (only two classes)
+        contact_idx_map_MC = { 0:-1,1:1, 2:1, 3:1, 4:1}
+        Contact_idx = contact_idx_map_MC[touch_type_idx]  # degenerate to contact idx
+        if Contact_idx == 1:
+            prediction = Gesture_load.gesture_model.single_predict(window.flatten())
+            
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
-    rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
+    if MultiClassifier:
+        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {prediction} and the detection duration is {detection_duration}')
+    else:
+        rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
     start_time = np.array(start_time).tolist()
     time_sec = int(start_time)
