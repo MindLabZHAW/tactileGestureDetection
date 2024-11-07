@@ -53,7 +53,7 @@ def preprocess_data(window_df, flatten_mode):
     if flatten_mode == "flatten":
         # 完全展平(4*7*28)
         flat_joints_colums = sum(joints_colums,[])
-        data = window_df.loc[:, flat_joints_colums].values
+        data = window_df.loc[:, flat_joints_colums].values.flatten()
         return np.array(data)  # 1D array, shape (784,)
     elif flatten_mode == "28x4x7":
         # 保持原始三维结构
@@ -101,8 +101,10 @@ class User(object):
             self.gesture_dict[gesture_name] = gesture
             save = input('Do you wish to save this gesture?(Y/n): ')
             if save == 'Y':
+                print()
                 with open(os.path.join(self.gesture_storage_dir, f'{gesture_name}.pickle'),"wb") as file:
                     pickle.dump(gesture,file)
+                print(f"Gesture '{gesture_name}' for user '{self.user_name}' is saved.")
             print(f"Gesture '{gesture_name}' added for user '{self.user_name}'.")
 
 # 收集手势数据并提取相关特征

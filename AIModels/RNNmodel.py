@@ -20,7 +20,9 @@ from ncps.wirings import AutoNCP
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from Process_Data.Data2Models import create_tensor_dataset
+import sys
+sys.path.append("Process_Data")
+from Data2Models import create_tensor_dataset
 
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'

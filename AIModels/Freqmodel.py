@@ -12,7 +12,9 @@ from sklearn.model_selection import train_test_split
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from Process_Data.Data2Models import create_tensor_dataset_stft
+import sys
+sys.path.append("Process_Data")
+from Data2Models import create_tensor_dataset_stft
 
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
@@ -22,8 +24,8 @@ time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 150
-network_type = '2L3DCNN'
+n_epochs = 50
+network_type = 'T2L3DCNN'
 train_all_data = False
 
 class CNNSequence(nn.Module):
