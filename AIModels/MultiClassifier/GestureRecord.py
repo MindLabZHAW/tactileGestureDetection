@@ -10,6 +10,8 @@ import pickle
 
 from sklearn.metrics import make_scorer, accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
+from sklearn.model_selection import LeaveOneOut
 import numpy as np
 
 import DataReader as DP
@@ -22,7 +24,7 @@ flatten_mode = "flatten"
 num_features = 4
 dof = 7
 
-rho=1.9
+# rho=1.9
 epsilon=0
 v0=50000 # how to initialize in future
 
@@ -112,8 +114,14 @@ class Gesture(object):
         self.gesture_name = gesture_name    
         self.gesture_data = gesture_data # is a dataframe for labeled_window_data
         # here initiall the model, train it and save it
-        self.gesture_model = RBFNetwork(rho=rho, epsilon=epsilon, v0=v0) # 参数还没填写
+        self.gesture_model = RBFNetwork(epsilon=epsilon, v0=v0) # 参数还没填写
         self._data_split()
+        # print(f"this is befor init best_rho {best_rho}")
+
+        # best_rho = self.gesture_model.cross_validate(self.X_train, self.y_train)
+        # print(f"this is init best_rho {best_rho}")
+        # self.gesture_model.rho = best_rho 
+
         self.classifier_train()
         self.classifier_test()
         print(f'Gesture {self.gesture_name} is established!')
@@ -156,15 +164,16 @@ class Gesture(object):
         accuracy = accuracy_score(self.y_test, self.y_predict)
 
         print(f"y_predictions is {self.y_predict}")
-        print(f"y_test is {self.y_test}")
+        print(f"y_test are {self.y_test}")
         print("Test Results:", ["YES" if pred == 1 else "NO" for pred in self.y_predict])
         print(f"Accuracy: {accuracy:.2f}")
     
 
 class RBFNetwork(object):
-    def __init__(self, rho=0.7, epsilon=0.5, v0=0.1):
+    def __init__(self,epsilon=0.5, v0=0.1):
+        print("DEBUG: this is init")
         # 初始化RBF网络参数
-        self.rho = rho       # 输入相似度阈值
+        # self.rho = None      # 输入相似度阈值
         self.epsilon = epsilon  # 输出相似度阈值
         self.v0 = v0         # 初始偏差值
         self.centers = []    # 存储聚类中心
@@ -172,6 +181,7 @@ class RBFNetwork(object):
         self.weights = None  # 存储输出层的权重
 
     def _input_similarity(self, x, center,variance):
+        print("DEBUG: this is _input_similarity")
         # 计算输入样本x与聚类中心的相似度
         # print(-np.linalg.norm(x - center))
         similarity = np.exp(-np.linalg.norm(x - center) ** 2 / (2 * variance ** 2))
@@ -180,12 +190,14 @@ class RBFNetwork(object):
         return similarity
 
     def _output_similarity(self, y, cluster_y):
+        print("DEBUG: this is _output_similarity")
         # 计算输出样本y与聚类输出的相似度
         similarity = np.sum(np.minimum(y, cluster_y)) / np.sum(np.maximum(y, cluster_y))
         # print(f"_output_similarity -> y: {y}, cluster_y: {cluster_y}, similarity: {similarity}")
         return similarity
 
     def _add_cluster(self, x, y):
+        print("DEBUG: this is _add_cluster")
         # 如果没有找到合适的聚类，则创建新聚类
         self.centers.append(x)  # 新聚类中心为当前样本
         self.variances.append(self.v0)  # 初始化方差
@@ -193,6 +205,7 @@ class RBFNetwork(object):
         return y
 
     def _update_cluster(self, x, y, cluster_idx):
+        print("DEBUG: this is _update_cluster")
         # 更新已有聚类的中心和方差
         n = len(self.centers[cluster_idx])  # 当前聚类中样本数量
         old_center = self.centers[cluster_idx]
@@ -203,11 +216,67 @@ class RBFNetwork(object):
         # 更新方差
         self.variances[cluster_idx] = np.sqrt(((self.variances[cluster_idx]**2) * n + np.linalg.norm(x - self.centers[cluster_idx])**2) / (n + 1))
         
-        print(f"_update_cluster -> Old center: {old_center}, New center: {self.centers[cluster_idx]}")
-        print(f"_update_cluster -> Old variance: {old_variance}, New variance: {self.variances[cluster_idx]}")
+        # print(f"_update_cluster -> Old center: {old_center}, New center: {self.centers[cluster_idx]}")
+        # print(f"_update_cluster -> Old variance: {old_variance}, New variance: {self.variances[cluster_idx]}")
+
+    def compute_similarity_scores(self, X):
+        # Compute pairwise similarity scores for the data points in X
+        similarity_matrix = np.zeros((len(X), len(X)))
+        
+        for i in range(len(X)):
+            for j in range(i, len(X)):
+                similarity_matrix[i, j] = self._input_similarity(X[i], X[j], self.v0)
+                similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
+        
+        return similarity_matrix
+
+    def determine_rho_range(self,X):
+        print("DEBUG: this is determine_rho_range")
+        similarity_matrix = self.compute_similarity_scores(X)
+        # Flatten the upper triangular part of the matrix to avoid duplicate comparisons
+        upper_triangular = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
+        # Calculate the 10th and 90th percentiles of the similarity scores
+        rho_min = np.percentile(upper_triangular, 10)
+        rho_max = np.percentile(upper_triangular, 90)
+        return rho_min, rho_max
+
+    def cross_validate(self,X,y):
+        print(f"Debug: Inside cross_validate, X_train data:{X}")
+        best_rho = None
+        best_accuracy = 0
+        loo = LeaveOneOut()
+
+        # 
+        rho_min,rho_max = self.determine_rho_range(X)
+        rho_values = np.linspace(rho_min,rho_max,num=10) # 生成 10 个 rho 值
+
+        for rho  in rho_values:
+            fold_accuracies = []
+            for train_index,val_index in loo.split(X):
+                X_train,X_val = np.array(X)[train_index],np.array(X)[val_index]
+                y_train,y_val = np.array(y)[train_index],np.array(y)[val_index]
+
+                self.rho = rho
+                self.fit(X_train,y_train)
+
+                y_pred = self.predict(X_val)
+                accuracy = accuracy_score(y_val,y_pred)
+                fold_accuracies.append(accuracy)
+
+            avg_accuracy = np.mean(fold_accuracies)
+
+            if avg_accuracy > best_accuracy:
+                best_accuracy = avg_accuracy
+                best_rho = rho
+        
+        self.rho = best_rho
+        print("in cross validate, the self.rho is {self.rho}")
+        return best_rho
 
     def fit(self, X, y):
+        print(f"Debug: this is fit")
         # 训练RBF网络
+        self.rho = self.cross_validate(X, y)  # Set the best rho
         cluster_labels = []
         for i, x in enumerate(X):
             max_input_sim, best_cluster = -1, -1
@@ -217,8 +286,10 @@ class RBFNetwork(object):
             for idx, center in enumerate(self.centers):
                 input_sim = self._input_similarity(x, center, self.variances[idx])  # 输入相似度
                 output_sim = self._output_similarity(y[i], cluster_labels[idx])  # 输出相似度
+                # best_rho = self.cross_validate(X,y,k=5)
                 # 如果相似度超过阈值，则更新最佳聚类
                 # print(f"fit -> Cluster {idx}: input_sim: {input_sim}, output_sim: {output_sim}")
+                print(f"in the fit(), the  is {best_rho}")
                 if input_sim >= self.rho and output_sim >= self.epsilon:
                     if input_sim > max_input_sim:
                         max_input_sim, best_cluster = input_sim, idx
@@ -245,6 +316,7 @@ class RBFNetwork(object):
         print(f"fit -> Calculated weights: {self.weights}")
 
     def predict(self, X):
+        print(f"Debug: this is predict")
         # 使用训练好的模型进行预测
         hidden_layer_output = np.array([
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
@@ -258,6 +330,7 @@ class RBFNetwork(object):
         return predictions
     
     def single_predict(self, x):
+        print(f"Debug: this is single_predict")
         # 使用训练好的模型进行预测
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
