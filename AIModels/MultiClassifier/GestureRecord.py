@@ -171,7 +171,7 @@ class Gesture(object):
 
 class RBFNetwork(object):
     def __init__(self,epsilon=0.5, v0=0.1):
-        print("DEBUG: this is init")
+        # print("DEBUG: this is init")
         # 初始化RBF网络参数
         # self.rho = None      # 输入相似度阈值
         self.epsilon = epsilon  # 输出相似度阈值
@@ -179,6 +179,7 @@ class RBFNetwork(object):
         self.centers = []    # 存储聚类中心
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
+        self.cluster_labels = []
 
     def _input_similarity(self, x, center,variance):
         print("DEBUG: this is _input_similarity")
@@ -197,15 +198,16 @@ class RBFNetwork(object):
         return similarity
 
     def _add_cluster(self, x, y):
-        print("DEBUG: this is _add_cluster")
+        # print("DEBUG: this is _add_cluster")
         # 如果没有找到合适的聚类，则创建新聚类
         self.centers.append(x)  # 新聚类中心为当前样本
         self.variances.append(self.v0)  # 初始化方差
+        self.cluster_labels.append(y)
         # print(f"_add_cluster -> New center added: {x}, variance: {self.variances[-1]}")
         return y
 
     def _update_cluster(self, x, y, cluster_idx):
-        print("DEBUG: this is _update_cluster")
+        # print("DEBUG: this is _update_cluster")
         # 更新已有聚类的中心和方差
         n = len(self.centers[cluster_idx])  # 当前聚类中样本数量
         old_center = self.centers[cluster_idx]
@@ -231,7 +233,7 @@ class RBFNetwork(object):
         return similarity_matrix
 
     def determine_rho_range(self,X):
-        print("DEBUG: this is determine_rho_range")
+        # print("DEBUG: this is determine_rho_range")
         similarity_matrix = self.compute_similarity_scores(X)
         # Flatten the upper triangular part of the matrix to avoid duplicate comparisons
         upper_triangular = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
@@ -240,7 +242,7 @@ class RBFNetwork(object):
         rho_max = np.percentile(upper_triangular, 90)
         return rho_min, rho_max
 
-    def cross_validate(self,X,y):
+    """ def cross_validate(self,X,y):
         print(f"Debug: Inside cross_validate, X_train data:{X}")
         best_rho = None
         best_accuracy = 0
@@ -271,25 +273,69 @@ class RBFNetwork(object):
         
         self.rho = best_rho
         print("in cross validate, the self.rho is {self.rho}")
-        return best_rho
-
+        return best_rho """
     def fit(self, X, y):
-        print(f"Debug: this is fit")
+        print("DEBUG: this is fit")
+        # Determine range for rho and create grid of rho values
+        rho_min, rho_max = self.determine_rho_range(X)
+        rho_values = np.linspace(rho_min, rho_max, num=10)
+        best_rho = None
+        best_accuracy = 0
+
+        # Grid search over rho values
+        for rho in rho_values:
+            self.rho = rho
+            fold_accuracies = []
+            
+            # Train and validate model on each rho
+            for i in range(len(X)):
+                X_train = np.delete(X, i, axis=0)
+                y_train = np.delete(y, i)
+                X_val = X[i:i+1]
+                y_val = y[i:i+1]
+                
+                self.fit_clusters(X_train, y_train)
+                y_pred = self.predict(X_val)
+                accuracy = accuracy_score(y_val, y_pred)
+                fold_accuracies.append(accuracy)
+                
+            avg_accuracy = np.mean(fold_accuracies)
+            if avg_accuracy > best_accuracy:
+                best_accuracy = avg_accuracy
+                best_rho = rho
+
+        self.rho = best_rho
+        print(f"Selected best rho: {self.rho}")
+
+        # Final model training with the best rho
+        self.fit_clusters(X, y)
+
+    def fit_clusters(self, X, y):
+        print(f"Debug: this is fit_clusters")
         # 训练RBF网络
-        self.rho = self.cross_validate(X, y)  # Set the best rho
-        cluster_labels = []
+        # self.rho = self.cross_validate(X, y)  # Set the best rho
+        
+
+        if not self.centers:
+            self.centers.append(X[0])
+            self.variances.append(self.v0)
+            self.cluster_labels.append(y[0])
+
         for i, x in enumerate(X):
             max_input_sim, best_cluster = -1, -1
             print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
             
             # 查找最佳聚类
             for idx, center in enumerate(self.centers):
+                print(f"debug: the length of centers is {len(self.centers)}")
+                print(f"debug: the length of cluster_labels is {len(self.cluster_labels)}")
+                print(f"debug: the idex  is {idx} ")
                 input_sim = self._input_similarity(x, center, self.variances[idx])  # 输入相似度
-                output_sim = self._output_similarity(y[i], cluster_labels[idx])  # 输出相似度
+                output_sim = self._output_similarity(y[i], self.cluster_labels[idx])  # 输出相似度
                 # best_rho = self.cross_validate(X,y,k=5)
                 # 如果相似度超过阈值，则更新最佳聚类
                 # print(f"fit -> Cluster {idx}: input_sim: {input_sim}, output_sim: {output_sim}")
-                print(f"in the fit(), the  is {best_rho}")
+                # print(f"in the fit(), the  is {best_rho}")
                 if input_sim >= self.rho and output_sim >= self.epsilon:
                     if input_sim > max_input_sim:
                         max_input_sim, best_cluster = input_sim, idx
@@ -297,7 +343,7 @@ class RBFNetwork(object):
 
             # 如果没有找到合适的聚类，则创建新聚类
             if best_cluster == -1:
-                cluster_labels.append(self._add_cluster(x, y[i]))
+                self._add_cluster(x, y[i])
                 print(f"fit -> Created new cluster for sample {i}")
             else:
                 self._update_cluster(x, y[i], best_cluster)
