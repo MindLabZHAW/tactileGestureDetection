@@ -148,8 +148,13 @@ elif method == 'Freq':
 
 # Load Multi Classifier Models
 if MultiClassifier:
-    with open('/home/weimindeqing/contactInterpretation/tactileGestureDetection/user_data/TestU1/TestG1.pickle', 'rb') as file:
-        Gesture_load = pickle.load(file)
+    user_folder_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/user_data/TestU1'
+    user_file_list = os.listdir(user_folder_path)
+    gesture_dict = {}
+    for gesture_file in user_file_list:
+        with open(os.path.join(user_folder_path, gesture_file), 'rb') as file:
+            Gesture_load = pickle.load(file)
+            gesture_dict[Gesture_load.gesture_name] = Gesture_load
 
 
 # Prepare window to collect features
@@ -342,13 +347,16 @@ def contact_detection(data):
         Contact_idx = contact_idx_map_MC[touch_type_idx]  # degenerate to contact idx
         prediction = -1
         if Contact_idx == 1:
-            prediction = Gesture_load.gesture_model.single_predict(window.flatten())
-            
+            prediction_dict = {}
+            for gesture_classifier in gesture_dict:
+                gesture_prediction = gesture_classifier.gesture_model.single_predict(window.flatten())
+                prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
     if MultiClassifier:
-        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {prediction} and the detection duration is {detection_duration}')
+        multiclassifier_output = ','.join([f'{k}: {v}' for k, v in prediction_dict.items()])
+        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {multiclassifier_output} and the detection duration is {detection_duration}')
     else:
         rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
