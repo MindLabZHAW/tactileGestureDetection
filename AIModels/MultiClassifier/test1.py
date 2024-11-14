@@ -29,7 +29,7 @@ num_features = 4
 dof = 7
 
 epsilon=0
-v0=10 # how to initialize in future
+v0=50000 # how to initialize in future
 
 def preprocess_data(window_df, flatten_mode):
     """

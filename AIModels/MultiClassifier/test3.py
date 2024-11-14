@@ -198,6 +198,8 @@ class RBFNetwork(object):
         print(f"feature_variances is {feature_variances}")
         # feature_variances =
         self.v0 = np.max(feature_variances)  # 使用方差的均值作为v0的初始值
+        # self.v0 = 1/np.sqrt(2)
+        # self.v0=50000
         print(f"Dynamic v0 set to: {self.v0}")  # 输出动态设置的 v08
 
     def _input_similarity(self, x, center,variance):
@@ -218,7 +220,6 @@ class RBFNetwork(object):
         # 如果没有找到合适的聚类，则创建新聚类
         self.centers.append(x)  # 新聚类中心为当前样本
         self.cluster_labels.append(y)
-
         self.variances.append(self.v0)  # 初始化方差
 
         # print(f"_add_cluster -> New center added: {x}, variance: {self.variances[-1]}")
@@ -247,6 +248,7 @@ class RBFNetwork(object):
         for i in range(len(X)):
             for j in range(i, len(X)):
                 similarity_matrix[i, j] = self._input_similarity(X[i], X[j], self.v0)
+                # similarity_matrix[i, j] = np.linalg.norm(X[i] - X[j])
                 similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
         print(f"similarity_matrix is {similarity_matrix}")
         # Flatten the upper triangular part of the matrix to avoid duplicate comparisons

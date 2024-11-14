@@ -3,6 +3,7 @@
 
 """
 
+from matplotlib import pyplot as plt
 import numpy as np
 import os
 import pandas as pd
@@ -26,7 +27,7 @@ dof = 7
 
 # rho=1.9
 epsilon=0
-v0=3.6135604206565346 # how to initialize in future
+# v0=1/np.sqrt(2)
 
 def preprocess_data(window_df, flatten_mode):
     """
@@ -114,7 +115,7 @@ class Gesture(object):
         self.gesture_name = gesture_name    
         self.gesture_data = gesture_data # is a dataframe for labeled_window_data
         # here initiall the model, train it and save it
-        self.gesture_model = RBFNetwork(epsilon=epsilon, v0=v0) # 参数还没填写
+        self.gesture_model = RBFNetwork(epsilon=epsilon) # 参数还没填写
         self._data_split()
         # print(f"this is befor init best_rho {best_rho}")
 
@@ -170,16 +171,28 @@ class Gesture(object):
     
 
 class RBFNetwork(object):
-    def __init__(self,epsilon=0.5, v0=0.1):
+    def __init__(self,epsilon=0.5, v0=None):
         # print("DEBUG: this is init")
         # 初始化RBF网络参数
         # self.rho = None      # 输入相似度阈值
         self.epsilon = epsilon  # 输出相似度阈值
-        self.v0 = v0         # 初始偏差值
+        self.v0 = v0 if v0 is not None else 0
         self.centers = []    # 存储聚类中心
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = []
+
+    def set_v0(self, X):
+        """基于输入数据X自动计算v0值"""
+        # 计算X每个维度的方差
+        feature_variances = np.var(X, axis=0)  # 计算每个特征的方差
+        # feature_variances = np.std(X, axis=0) # 计算每个特征的标准差
+        # print(f"feature_variances is {feature_variances}")
+        # feature_variances =
+        self.v0 = np.max(feature_variances)  # 使用方差的均值作为v0的初始值
+        # self.v0 = 1/np.sqrt(2)
+        # self.v0=50000
+        # print(f"Dynamic v0 set to: {self.v0}")  # 输出动态设置的 v08    
 
     def _input_similarity(self, x, center,variance):
         # print("DEBUG: this is _input_similarity")
@@ -229,7 +242,7 @@ class RBFNetwork(object):
             for j in range(i, len(X)):
                 similarity_matrix[i, j] = self._input_similarity(X[i], X[j], self.v0)
                 similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
-        
+        # print(similarity_matrix)
         return similarity_matrix
 
     def determine_rho_range(self,X):
@@ -237,40 +250,44 @@ class RBFNetwork(object):
         similarity_matrix = self.compute_similarity_scores(X)
         # Flatten the upper triangular part of the matrix to avoid duplicate comparisons
         upper_triangular = similarity_matrix[np.triu_indices_from(similarity_matrix, k=1)]
+        # print(upper_triangular)
         # Calculate the 10th and 90th percentiles of the similarity scores
         rho_min = np.percentile(upper_triangular, 10)
         rho_max = np.percentile(upper_triangular, 90)
-        print(max(upper_triangular))
-        print(min(upper_triangular))
-        print(rho_max)
-        print(rho_min)
+        # print(max(upper_triangular))
+        # print(min(upper_triangular))
+        # print(rho_max)
+        # print(rho_min)
         return rho_min, rho_max
 
     def reset_params(self):
-        self.v0 = v0         # 初始偏差值
+        self.v0 = 0        # 初始偏差值
         self.centers = []    # 存储聚类中心
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = [] 
 
     def fit(self, X, y):
-        print("DEBUG: this is fit")
+        # print("DEBUG: this is fit")
+        self.set_v0(X)
+
         # Determine range for rho and create grid of rho values
         rho_min, rho_max = self.determine_rho_range(X)
         rho_values = np.linspace(rho_min, rho_max, num=10)
+        # rho_values = [(rho_min+rho_max)/2]
         best_rho = None
         best_accuracy = 0
 
         # Grid search over rho values
         for rho in rho_values:
             self.rho = rho
-            print(f'rho = {self.rho}')
+            # print(f'rho = {self.rho}')
             fold_accuracies = []
             
             # Train and validate model on each rho
             kf = KFold(n_splits=10, shuffle=True, random_state=42)
             for fold_num, (train_index, val_index) in enumerate(kf.split(X)):
-                print(f"Fold {fold_num+1}:")
+                # print(f"Fold {fold_num+1}:")
                 # print(f"train_index: {train_index}")
                 # print(f"val_index: {val_index}")
                 
@@ -279,21 +296,22 @@ class RBFNetwork(object):
 
                 # Reset model parameters before each fold
                 self.reset_params()
+                self.set_v0(X) # also can be set to X_train
                 
                 self.fit_clusters(X_train, y_train)
                 y_pred = self.predict(X_val)
                 accuracy = accuracy_score(y_val, y_pred)
                 fold_accuracies.append(accuracy)
-                print(f'Accuracy: {accuracy}' )
+                # print(f'Accuracy: {accuracy}' )
                 
             avg_accuracy = np.mean(fold_accuracies)
-            print(f'Ave Accuracy: {avg_accuracy}')
+            # print(f'Ave Accuracy: {avg_accuracy}')
             if avg_accuracy > best_accuracy:
                 best_accuracy = avg_accuracy
                 best_rho = rho
 
         self.rho = best_rho
-        print(f"Selected best rho: {self.rho}")
+        # print(f"Selected best rho: {self.rho}")
 
         # Final model training with the best rho
         self.fit_clusters(X, y)
@@ -338,7 +356,7 @@ class RBFNetwork(object):
                 # print(f"fit -> Updated cluster {best_cluster} for sample {i}")
 
         # 计算隐藏层输出并优化权重
-        print("--------Calculating hidden layer output--------")
+        # print("--------Calculating hidden layer output--------")
         hidden_layer_output = np.array([
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
@@ -350,28 +368,32 @@ class RBFNetwork(object):
         # print(f"fit -> Calculated weights: {self.weights}")
 
     def predict(self, X):
-        print(f"Debug: this is predict")
+        # print(f"Debug: this is predict")
         # 使用训练好的模型进行预测
         hidden_layer_output = np.array([
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
+        prt = hidden_layer_output @ self.weights
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
-        
+        # print(f"[{min(prt)}, {max(prt)}]")
+        """ plt.hist(prt,bins=10,color='red',alpha=0.6,label = 'prt distribution')
+        plt.show() """
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
+        # print(hidden_layer_output @ self.weights)
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
         # print(f"predict -> Predictions: {predictions}")
         return predictions
     
     def single_predict(self, x):
         print(f"Debug: this is single_predict")
+       
         # 使用训练好的模型进行预测
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
-        
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
-        # print(f"predict -> Predictions: {predictions}")
+        print(f"predict -> Predictions: {predictions}")
         return predictions
    
 
@@ -385,5 +407,4 @@ if __name__ == '__main__':
     if add_gesture_flag == 'Y':
         GName = 'TestG1'
         # Data Recording Progress should be added here
-        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7G-S1', CurrentUser.gesture_storage_dir)
-
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7ST-S1', CurrentUser.gesture_storage_dir)
