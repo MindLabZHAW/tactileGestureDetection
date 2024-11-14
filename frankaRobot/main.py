@@ -66,7 +66,7 @@ print(f"main_path is {main_path}")
 
 import sys
 sys.path.append(os.path.join(main_path,"AIModels","MultiClassifier"))
-from GestureRecord import Gesture, RBFNetwork
+from test2 import Gesture, RBFNetwork
 
 # Parameters for the KNN models
 window_length = 28
@@ -75,7 +75,7 @@ features_num = 4
 classes_num = 5
 method = 'Freq'
 Normalization = False
-MultiClassifier = False
+MultiClassifier = True
 
 
 # 进行Z-score归一化-RNN
@@ -133,8 +133,8 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/T2L3DCNN_11_07_2024_20-36-2450Epoch.pth'
-    model = import_cnn_models(model_path, network_type='T2L3DCNN', num_classes=classes_num)
+    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_16_2024_15-02-4760Epoch.pth'
+    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -148,8 +148,14 @@ elif method == 'Freq':
 
 # Load Multi Classifier Models
 if MultiClassifier:
-    with open('/home/weimindeqing/contactInterpretation/tactileGestureDetection/user_data/TestU1/TestG1.pickle', 'rb') as file:
-        Gesture_load = pickle.load(file)
+    user_folder_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/user_data/TestU1/Gestures_Data'
+    user_file_list = os.listdir(user_folder_path)
+    gesture_list = []
+    for gesture_file in user_file_list:
+        print(os.path.join(user_folder_path, gesture_file))
+        with open(os.path.join(user_folder_path, gesture_file), 'rb') as file:
+            Gesture_load = pickle.load(file)
+            gesture_list.append(Gesture_load)
 
 
 # Prepare window to collect features
@@ -341,14 +347,17 @@ def contact_detection(data):
         contact_idx_map_MC = { 0:-1,1:1, 2:1, 3:1, 4:1}
         Contact_idx = contact_idx_map_MC[touch_type_idx]  # degenerate to contact idx
         prediction = -1
+        prediction_dict = {}
         if Contact_idx == 1:
-            prediction = Gesture_load.gesture_model.single_predict(window.flatten())
-            
+            for gesture_classifier in gesture_list:
+                gesture_prediction = gesture_classifier.gesture_model.single_predict(window.flatten())
+                prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
     if MultiClassifier:
-        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {prediction} and the detection duration is {detection_duration}')
+        multiclassifier_output = ','.join([f'{k}: {v}' for k, v in prediction_dict.items()])
+        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {multiclassifier_output} and the detection duration is {detection_duration}')
     else:
         rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
