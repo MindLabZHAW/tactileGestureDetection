@@ -26,7 +26,7 @@ dof = 7
 
 # rho=1.9
 epsilon=0
-v0=50000 # how to initialize in future
+v0=3.6135604206565346 # how to initialize in future
 
 def preprocess_data(window_df, flatten_mode):
     """
@@ -242,40 +242,10 @@ class RBFNetwork(object):
         rho_max = np.percentile(upper_triangular, 90)
         print(max(upper_triangular))
         print(min(upper_triangular))
+        print(rho_max)
+        print(rho_min)
         return rho_min, rho_max
 
-    """ def cross_validate(self,X,y):
-        print(f"Debug: Inside cross_validate, X_train data:{X}")
-        best_rho = None
-        best_accuracy = 0
-        loo = LeaveOneOut()
-
-        # 
-        rho_min,rho_max = self.determine_rho_range(X)
-        rho_values = np.linspace(rho_min,rho_max,num=10) # 生成 10 个 rho 值
-
-        for rho  in rho_values:
-            fold_accuracies = []
-            for train_index,val_index in loo.split(X):
-                X_train,X_val = np.array(X)[train_index],np.array(X)[val_index]
-                y_train,y_val = np.array(y)[train_index],np.array(y)[val_index]
-
-                self.rho = rho
-                self.fit(X_train,y_train)
-
-                y_pred = self.predict(X_val)
-                accuracy = accuracy_score(y_val,y_pred)
-                fold_accuracies.append(accuracy)
-
-            avg_accuracy = np.mean(fold_accuracies)
-
-            if avg_accuracy > best_accuracy:
-                best_accuracy = avg_accuracy
-                best_rho = rho
-        
-        self.rho = best_rho
-        print("in cross validate, the self.rho is {self.rho}")
-        return best_rho """
     def reset_params(self):
         self.v0 = v0         # 初始偏差值
         self.centers = []    # 存储聚类中心
