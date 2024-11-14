@@ -342,4 +342,4 @@ if __name__ == '__main__':
     if add_gesture_flag == 'Y':
         GName = 'TestG1'
         # Data Recording Progress should be added here
-        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7P-S1', CurrentUser.gesture_storage_dir) 
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7P-S3', CurrentUser.gesture_storage_dir) 
