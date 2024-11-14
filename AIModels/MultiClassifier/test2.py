@@ -340,6 +340,19 @@ if __name__ == '__main__':
     # add_gesture_flag = input('Add new gesture?(Y/n):')
     add_gesture_flag = 'Y'
     if add_gesture_flag == 'Y':
-        GName = 'TestG1'
+        GName = 'Push'
         # Data Recording Progress should be added here
-        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7P-S3', CurrentUser.gesture_storage_dir) 
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7P-S1', CurrentUser.gesture_storage_dir) 
+        add_gesture_flag = 'N'
+    add_gesture_flag = 'Y'
+    if add_gesture_flag == 'Y':
+        GName = 'Grab'
+        # Data Recording Progress should be added here
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7G-S1', CurrentUser.gesture_storage_dir) 
+        add_gesture_flag = 'N'
+    add_gesture_flag = 'Y'
+    if add_gesture_flag == 'Y':
+        GName = 'STap'
+        # Data Recording Progress should be added here
+        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7ST-S1', CurrentUser.gesture_storage_dir) 
+        add_gesture_flag = 'N'
