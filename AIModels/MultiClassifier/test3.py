@@ -198,7 +198,7 @@ class RBFNetwork(object):
         print(f"feature_variances is {feature_variances}")
         # feature_variances =
         self.v0 = np.max(feature_variances)  # 使用方差的均值作为v0的初始值
-        print(f"Dynamic v0 set to: {self.v0}")  # 输出动态设置的 v0
+        print(f"Dynamic v0 set to: {self.v0}")  # 输出动态设置的 v08
 
     def _input_similarity(self, x, center,variance):
         # 计算输入样本x与聚类中心的相似度
