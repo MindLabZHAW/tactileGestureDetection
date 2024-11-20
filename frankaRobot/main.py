@@ -29,84 +29,104 @@ open another terminal
 	source robotAPI/frankapy/catkin_ws/devel/setup.bash --extend
 	
 	$HOME/miniconda/envs/frankapyenv/bin/python3 ../tactileGestureDetection/frankaRobot/main.py
+    In this line, you may have to change the script path according to your environment
 
 # to chage publish rate of frankastate go to : 
 sudo nano /franka-interface/catkin_ws/src/franka_ros_interface/launch/franka_ros_interface.launch
 """
-
+# Import general libraries
 import os
 import pickle
 from threading import Event
 import numpy as np
 import pandas as pd
-
-import joblib
-import torch
-from torchvision import transforms
-
 from collections import Counter
 
+# Import method related libraries
+# General
+import torch
+from torchvision import transforms
+# KNN model
+import joblib 
+# Frequency model
 from scipy.signal import stft
 from scipy import signal as sg
 import pywt
 
+# Import rospy and Frankapy related libraries
+# rospy
 import rospy
 from std_msgs.msg import Float64
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from franka_interface_msgs.msg import RobotState
-
+# Frankapy
 from frankapy import FrankaArm
-
-from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
 
 # Set the main path
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 print(f"main_path is {main_path}")
 
+# Import our own script
+# ImportModel Used to import different models' structure
+from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
+# Import Multiple Classifiers form "/AIModels/MultiClassifier"
 import sys
 sys.path.append(os.path.join(main_path,"AIModels","MultiClassifier"))
-from test2 import Gesture, RBFNetwork
+from GestureRecord import Gesture, RBFNetwork
 
-# Parameters for the KNN models
+# General Hyper-Parameters
 window_length = 28
 dof = 7
 features_num = 4
 classes_num = 5
-method = 'Freq'
 Normalization = False
-MultiClassifier = True
+# Model Selection Parameters and path (Please always change them together)
+method = 'Freq'
+model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_11_07_2024_20-36-2450Epoch.pth") # relative path from AIModels
+type_network = 'T2L3DCNN'
+# MultiClassifier Parameters and path
+MultiClassifier = False
+if MultiClassifier:
+    user_folder_path = os.path.join(main_path, "user_data/TestU1")
 
 
-# 进行Z-score归一化-RNN
+# Z-score Normalization Function for RNN
 def z_score_normalization(matrix):
-    # 创建一个新的矩阵以存储归一化结果
-    normalized_matrix = np.empty_like(matrix)
+    # Create an empty matrix to store the Normalized data
+    normalized_matrix = np.empty_like(matrix) # 7 rows by 4*window_length columns
 
-    # 遍历每行中的每个特征（每4个元素代表一个特征）
-    for row in range(matrix.shape[0]):  # 7行
-        for feature_index in range(4):  # 每个特征有4个值
-            # 提取该特征在28个样本中的所有值
-            feature_values = matrix[row, feature_index::4]  # 提取每4个元素
+    # Iterate over every feature in every joint
+    for row in range(matrix.shape[0]):  # 7 joints in 7 rows
+        for feature_index in range(features_num):  # 4 features
+
+            feature_values = matrix[row, feature_index::4]  # extract every 4 columns
             
-            # 计算均值和标准差
+            # Calculate mean and std for each feature-joint combinition
             mean = np.mean(feature_values)
             std = np.std(feature_values)
 
-            # 归一化
-            normalized_matrix[row, feature_index::4] = (feature_values - mean) / (std + 1e-5)  # 加上一个小常数以避免除以零
+            # Z-score Normalization
+            normalized_matrix[row, feature_index::4] = (feature_values - mean) / (std + 1e-5)  # Add a small number to avoid divided by 0 
 
     return normalized_matrix
 
+# Loading Models
 if method == 'KNN':
-    # Load the KNN model
-    # model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/KNN_undersampling.pkl'
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/KNN_SVM__RF_flatten_undersampling_hybried.pkl'
+    # Load KNN model
+    model_path = os.path.join(main_path, model_path_relative)
     model = joblib.load(model_path)
 
 elif method == 'RNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/NCPCfC_09_26_2024_15-03-37MainPhaseKickOffMeeting.pth'
-    model = import_rnn_models(model_path, network_type='NCPCfC', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    # Load RNN Model
+    '''
+    Possible network_type: LSTM, GRU, FCLTC, FCCfC, NCPLTC, NCP, CfC
+    Notation: 
+        FC for Fully-Connected Network stucture, NCP for Neural Circuit Policy Nw sturcture
+        LTC for Liquid Time-Constant Neuron, CfC for Closed-Form Continuous-Time Neuron 
+    '''
+    model_path = os.path.join(main_path, model_path_relative)
+    model = import_rnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -119,8 +139,13 @@ elif method == 'RNN':
     transform = transforms.Compose([transforms.ToTensor()])
 
 elif method == 'TCNN':
-    model_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/AIModels/TrainedModels/1L3DTCNN_10_23_2024_14-59-34Normalization40.pth'
-    model = import_tcnn_models(model_path, network_type='1L3DTCNN', num_classes=classes_num, num_features=features_num, time_window=window_length)
+    # Load Time CNN model
+    '''
+    Possible network_type: 1L3DTCNN, 2L3DTCNN
+    Use 3D Image (Time as channel axis) combining with 3D CNN
+    '''
+    model_path = os.path.join(main_path, model_path_relative)
+    model = import_tcnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -133,8 +158,14 @@ elif method == 'TCNN':
     # transform = transforms.Compose([transforms.ToTensor()]) # ToTensor will automatically change (H,W,C) to (C, H, W) so abort
 
 elif method == 'Freq':
-    model_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/AIModels/TrainedModels/2L3DCNN_10_16_2024_15-02-4760Epoch.pth'
-    model = import_cnn_models(model_path, network_type='2L3DCNN', num_classes=classes_num)
+    # Load Freqency Model
+    '''
+    Possible network_type: 2LCNN, 3LCNN, 2L3DCNN, T2L3DCNN
+    Use 2D or 3D(Features as channel axis) Image with 2D/3D CNN 
+    T2L3DCNN is a fake Spectrogram with no frequency transform but raw time domain data in each channel(feature) 
+    '''
+    model_path = os.path.join(main_path, model_path_relative)
+    model = import_cnn_models(model_path, network_type= type_network, num_classes=classes_num)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -148,11 +179,10 @@ elif method == 'Freq':
 
 # Load Multi Classifier Models
 if MultiClassifier:
-    user_folder_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/user_data/TestU1/Gestures_Data'
     user_file_list = os.listdir(user_folder_path)
     gesture_list = []
+    # Load All Gesture Object
     for gesture_file in user_file_list:
-        print(os.path.join(user_folder_path, gesture_file))
         with open(os.path.join(user_folder_path, gesture_file), 'rb') as file:
             Gesture_load = pickle.load(file)
             gesture_list.append(Gesture_load)
@@ -177,29 +207,32 @@ elif method == 'Freq':
 
 # Initialize a list to store the results
 results = []
-# Create message for publishing model output (will be used in saceDataNode.py)
+# Create message for publishing model output (will be used in saveDataNode.py)
 model_msg = Floats()
 
 
-# Callback function for contact detection and prediction
+# Callback function for contact detection and gesture prediction
 def contact_detection(data):
     global window, window2, window3, results, big_time_digits
 
     start_time = rospy.get_time()
 
-    # Prepare data as done in training
-    e = np.array(data.q_d) - np.array(data.q)
+    # Extract needed features from data
+    e = np.array(data.q_d) - np.array(data.q) # 7D vector
     # print("e is ", e)
-    de = np.array(data.dq_d) - np.array(data.dq)
-    tau_J = np.array(data.tau_J)  
-    tau_ext = np.array(data.tau_ext_hat_filtered)
+    de = np.array(data.dq_d) - np.array(data.dq) # 7D vector
+    tau_J = np.array(data.tau_J) # 7D vector
+    tau_ext = np.array(data.tau_ext_hat_filtered) # 7D vector
 
 
+    # KNN Procedure
     if method == 'KNN':
+        # Reshape the new comming data
         new_data = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, -1)
         # print(f"new data is {new_data}")
         # print(f"new data size is{new_data.shape}")
         
+        # Shift the window to contain the newest data and exclude the oldest data
         window = np.append(window[:,features_num * dof:], new_data, axis=1)
 
         # Predict the touch_type using the KNN model
@@ -209,17 +242,21 @@ def contact_detection(data):
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
-
+    
+    # RNN Procedure
     elif method == 'RNN':
+        # Reshape the new comming data
         new_block = np.column_stack((e,de,tau_J,tau_ext))
-        print(f"new block is {new_block}")
+        # print(f"new block is {new_block}")
         # print(f"front block is {window[:, features_num:].shape}")
+        # Update window3(t-2) and window2(t-1) and window(t) in sequence
         window3 = window2
         window2 = window
         window = np.append(window[:, features_num:], new_block, axis=1)
+        # Normalization
         if Normalization:
             window = z_score_normalization(window)
-
+        # Use the network to predict in all 3 windows
         with torch.no_grad():
             # Prepare inputs
             data_input1 = transform(window).to(device).float()
@@ -248,20 +285,24 @@ def contact_detection(data):
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
     
-
+    # TCNN Procedure
     elif method == 'TCNN':
+        # Reshape the new comming data
         new_block = np.expand_dims(np.column_stack((e,de,tau_J,tau_ext)), axis=0)
         # print(new_block.shape)
+        # Shift the window to contain the newest data and exclude the oldest data
         window = np.append(window[1:, :, :], new_block, axis = 0)
+        # Normalization
         if Normalization:
             window_mean = np.mean(window, axis=0)
             window_std = np.std(window, axis=0)
             window = (window - window_mean) / (window_std + 1e-5)
+        # Predict the touch_type using the CNN model with T-Image
         with torch.no_grad():
             # Prepare inputs
             # print(window.shape)
             data_input = torch.from_numpy(window).unsqueeze(0).to(device).float()
-            # Calculate model outputs for each window
+            # Calculate model outputs
             # print(data_input.shape)
             model_out = model(data_input).detach()
             # Get predictions for each window 
@@ -277,78 +318,114 @@ def contact_detection(data):
 
 
     elif method == 'Freq':
+        # Reshape the new comming data
         new_row = np.column_stack((e,de,tau_J,tau_ext)).reshape(1, features_num * dof)
         # print(f"new row is {new_row}")
+        # Shift the window to contain the newest data and exclude the oldest data
         window = np.append(window[1:, :], new_row, axis=0)
-        
+       
+        # 2 Layers 2D/3D CNN - STFT
         if model.network_type in ['2LCNN', '2L3DCNN']:
-            # STFT
-            fs = 200
-            nperseg = 16
-            noverlap = nperseg - 1
-            data_matrix = [] 
+            # Hyperparameters for STFT
+            fs = 200 # sample frequency
+            nperseg = 16 # STFT window size
+            noverlap = nperseg - 1 # STFT window stride
+            
+            data_matrix = []
+            # Iterate over every feature in every joint
             for feature_idx in range(window.shape[1]):
-                signal = window[:, feature_idx]
+                # Extract signal for each feature in every joint
+                signal = window[:, feature_idx] 
+                # Normalization on single signal
                 if Normalization:
                     signal_mean = np.mean(signal)
                     signal_std = np.std(signal)
                     signal = (signal - signal_mean) / (signal_std + 1e-5)
+                # Conduct Short-time Fourier Transform
                 # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
                 f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                # Stack signals in 3rd dimension
                 data_matrix.append(np.abs(Zxx))
+        # 3 Layers 2D CNN - CWT
         elif model.network_type == '3LCNN':
-            # CWT
+            # Hyperparameters for CWT
             wavelet = 'cmor'  # Complex Morlet wavelet (suitable for time-frequency analysis)
             scales = np.arange(1, 128)  # Adjust the range of scales as needed
-            fs = 200
+            fs = 200 # sample frequency
+
             data_matrix = [] 
+            # Iterate over every feature in every joint
             for feature_idx in range(window.shape[1]):
-                coefficients, frequencies = pywt.cwt(window[:, feature_idx], scales, wavelet,sampling_period=1/fs)
+                # Extract signal for each feature in every joint
+                signal = window[:, feature_idx]  
+                # Conduct Continuous Wavelet Transform
+                coefficients, frequencies = pywt.cwt(signal, scales, wavelet,sampling_period=1/fs)
+                # Stack signals in 3rd dimension
                 data_matrix.append(np.abs(coefficients))
+        # 2 Layer 3D CNN - Fake STFT Image on Time Domain
         elif model.network_type == 'T2L3DCNN':
-            T_window_size = 16
+            # Hyperparameters
+            T_window_size = 16 # window size
             T_step = 1  # not used because iteration automatically +1,but if step is not 1 we need to fix this
-            T_window_num = len(window) - T_window_size + 1
+            T_window_num = len(window) - T_window_size + 1 # calculate the total window number
+            
             data_matrix = [] 
+            # Iterate over every feature in every joint
             for feature_idx in range(window.shape[1]):
+                # Using directly each signal on time domain instead of conduction frequency domain transform 
                 T_matrix = np.zeros([T_window_size, T_window_num])
+                # Extract signal for each feature in every joint
                 signal = window[:, feature_idx]
+                # Normalization
                 if Normalization:
                     signal_mean = np.mean(signal)
                     signal_std = np.std(signal)
                     signal = (signal - signal_mean) / (signal_std + 1e-5)
+                # Put each window directly into columns(No transform)
                 for i in range(T_window_num):
                     T_matrix[:,i] = signal[i:i+T_window_size]
+                # Stack signals in 3rd dimension
                 # print(T_matrix)
                 data_matrix.append(np.array(T_matrix))
 
-        # Predict the touch_type using the CNN Model
+        # Predict the touch_type using the CNN Model with F-Image
         with torch.no_grad():
+            # Change the multiple 2D data_matrix in list into stacked 3D stft_matrix
             stft_matrix = np.stack(data_matrix, axis=-1)
             # print(stft_matrix.shape)
             # print(torch.unsqueeze(transform(stft_matrix),0).shape)
+            # Prepare inputs
+            # transform 3rd dimension as channel dimension [(F,T,C) to (C,F,T)]
             stft_matrix_input = transform(stft_matrix).unsqueeze(0).to(device).float()
             # print(stft_matrix_input.shape)
+            # Calculate model outputs
             model_out = model(stft_matrix_input).detach()
             # print(model_out)
+            # Get predictions
             output = torch.argmax(model_out)
             # print(output)
+        # Project the int index to string output
         touch_type_idx = int(output.cpu())
         label_map_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
-
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
 
+    # MultiClassifier interface
     if MultiClassifier:
+        # Convert 5 string touch_type labels back to 2 string contact labels (Contact/NoContact)
         label_map_MC = { 0:"NoContact",1:"Contact", 2:"Contact", 3:"Contact", 4:"Contact"}
-        touch_type = label_map_MC[touch_type_idx]  # Get the actual touch type label in MultiClassifier (only two classes)
+        touch_type = label_map_MC[touch_type_idx]
+        # Convert 5 string touch_type labels back to 2 int contact idx (Contact->1/NoContact->-1)
         contact_idx_map_MC = { 0:-1,1:1, 2:1, 3:1, 4:1}
-        Contact_idx = contact_idx_map_MC[touch_type_idx]  # degenerate to contact idx
+        Contact_idx = contact_idx_map_MC[touch_type_idx]
+        # initiallize the prediction dict for multiple classifier and default prediction
         prediction = -1
         prediction_dict = {}
+        # Apply multi classifier when contact
         if Contact_idx == 1:
+            # Iterate over all classifier and get their result
             for gesture_classifier in gesture_list:
                 gesture_prediction = gesture_classifier.gesture_model.single_predict(window.flatten())
                 prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
@@ -361,10 +438,12 @@ def contact_detection(data):
     else:
         rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
+    # Calculate time info
     start_time = np.array(start_time).tolist()
     time_sec = int(start_time)
     time_nsec = start_time-time_sec
     model_msg.data = np.append(np.array([time_sec-big_time_digits, time_nsec, detection_duration, touch_type_idx], dtype=np.complex128), np.hstack(window))
+    # publish the model message
     # print(model_msg)
     model_pub.publish(model_msg)
 
