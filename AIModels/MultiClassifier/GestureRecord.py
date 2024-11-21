@@ -73,6 +73,8 @@ def preprocess_data(window_df, flatten_mode):
         raise ValueError("Invalid flatten_mode. Choose from 'flatten', '28x4x7', '7x(4x28)', '4x(7x28)'.")   
 
 
+
+
 class User(object):
     def __init__(self, user_name:str, password='NotSet', storage_dir='user_data'): # 这里的路径和add_gesture的路径可以考虑怎么intergate一下
         self.user_name = user_name
@@ -113,7 +115,7 @@ class Gesture(object):
         self.gesture_name = gesture_name    
         self.gesture_data = gesture_data # is a dataframe for labeled_window_data
         # here initiall the model, train it and save it
-        self.gesture_model = RBFNetwork(epsilon=epsilon) # 参数还没填写
+        self.gesture_model = RBFNetwork(epsilon=epsilon) 
         self._data_split()
         # print(f"this is befor init best_rho {best_rho}")
 
@@ -169,8 +171,7 @@ class Gesture(object):
     
 
 class RBFNetwork(object):
-    # Initialize RBF network parameters
-    def __init__(self,epsilon=0.5, v0=None): 
+    def __init__(self,epsilon=0.5, v0=None):
         # print("DEBUG: this is init")
         # 初始化RBF网络参数
         # self.rho = None      # 输入相似度阈值
@@ -181,7 +182,6 @@ class RBFNetwork(object):
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = []
 
-    # Compute the variance of each feature in X
     def set_v0(self, X):
         """基于输入数据X自动计算v0值"""
         # 计算X每个维度的方差
@@ -202,14 +202,14 @@ class RBFNetwork(object):
         # similarity = np.corrcoef(x,center)[0,1]
         # print(f"_input_similarity -> x: {x}, center: {center}, variance :{variance} ,similarity: {similarity}")
         return similarity
-    # Calculate similarity between output sample y and cluster output
+
     def _output_similarity(self, y, cluster_y):
         # print("DEBUG: this is _output_similarity")
         # 计算输出样本y与聚类输出的相似度
         similarity = np.sum(np.minimum(y, cluster_y)) / np.sum(np.maximum(y, cluster_y))
         # print(f"_output_similarity -> y: {y}, cluster_y: {cluster_y}, similarity: {similarity}")
         return similarity
-    # Create a new cluster if no suitable cluster is found
+
     def _add_cluster(self, x, y):
         # print("DEBUG: this is _add_cluster")
         # 如果没有找到合适的聚类，则创建新聚类
@@ -218,7 +218,7 @@ class RBFNetwork(object):
         self.cluster_labels.append(y)
         # print(f"_add_cluster -> New center added: {x}, variance: {self.variances[-1]}")
         return y
-    # Update the center and variance of an existing cluster
+
     def _update_cluster(self, x, y, cluster_idx):
         # print("DEBUG: this is _update_cluster")
         # 更新已有聚类的中心和方差
@@ -244,7 +244,7 @@ class RBFNetwork(object):
                 similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
         # print(similarity_matrix)
         return similarity_matrix
-    # Determine the range for rho based on similarity scores in X
+
     def determine_rho_range(self,X):
         # print("DEBUG: this is determine_rho_range")
         similarity_matrix = self.compute_similarity_scores(X)
@@ -260,7 +260,6 @@ class RBFNetwork(object):
         # print(rho_min)
         return rho_min, rho_max
 
-    # Reset model parameters
     def reset_params(self):
         self.v0 = 0        # 初始偏差值
         self.centers = []    # 存储聚类中心
@@ -268,7 +267,6 @@ class RBFNetwork(object):
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = [] 
 
-    # Fit the model using input X and labels y
     def fit(self, X, y):
         # print("DEBUG: this is fit")
         self.set_v0(X)
@@ -317,12 +315,13 @@ class RBFNetwork(object):
 
         # Final model training with the best rho
         self.fit_clusters(X, y)
-    # Train RBF network
+
     def fit_clusters(self, X, y):
         # print(f"Debug: this is fit_clusters")
         # 训练RBF网络
         # self.rho = self.cross_validate(X, y)  # Set the best rho
         
+
         if not self.centers:
             self.centers.append(X[0])
             self.variances.append(self.v0)
@@ -365,11 +364,9 @@ class RBFNetwork(object):
         # print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
         
         # 使用伪逆计算输出层的权重
-        # Compute weights using pseudoinverse
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
         # print(f"fit -> Calculated weights: {self.weights}")
 
-    # Predict using the trained model
     def predict(self, X):
         # print(f"Debug: this is predict")
         # 使用训练好的模型进行预测
@@ -388,10 +385,9 @@ class RBFNetwork(object):
         # print(f"predict -> Predictions: {predictions}")
         return predictions
     
-    # Predict for a single input
     def single_predict(self, x):
-        
         print(f"Debug: this is single_predict")
+       
         # 使用训练好的模型进行预测
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
