@@ -25,14 +25,8 @@ flatten_mode = "flatten"
 num_features = 4
 dof = 7
 
-# rho=1.9
 epsilon=0
-# v0=1/np.sqrt(2)
-def ecdf(data):
-    sorted_data = np.sort(data)
-    n = len(data)
-    y = np.arange(1,n+1)/n
-    return sorted_data,y
+
 
 def preprocess_data(window_df, flatten_mode):
     """
@@ -185,6 +179,7 @@ class RBFNetwork(object):
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = []
+        self.postive_outputs = []
 
     # Compute the variance of each feature in X
     def set_v0(self, X):
@@ -249,6 +244,7 @@ class RBFNetwork(object):
                 similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
         # print(similarity_matrix)
         return similarity_matrix
+    
     # Determine the range for rho based on similarity scores in X
     def determine_rho_range(self,X):
         # print("DEBUG: this is determine_rho_range")
@@ -322,6 +318,8 @@ class RBFNetwork(object):
 
         # Final model training with the best rho
         self.fit_clusters(X, y)
+
+
     # Train RBF network
     def fit_clusters(self, X, y):
         # print(f"Debug: this is fit_clusters")
@@ -333,10 +331,18 @@ class RBFNetwork(object):
             self.variances.append(self.v0)
             self.cluster_labels.append(y[0])
 
+
+
         for i, x in enumerate(X):
+            print(f"y is {y[i]}")
+
+            if y[i] == 1:
+                hidden_layer_output = [self._input_similarity(x, center, variance) for center,variance in zip(self.centers,self.variances)]
+                output_value = np.dot(hidden_layer_output,self.weights)
+                self.postive_outputs.append(output_value)
+        
             max_input_sim, best_cluster = -1, -1
             # print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
-            
             # 查找最佳聚类
             for idx, center in enumerate(self.centers):
                 # print(f"debug: the length of centers is {len(self.centers)}")
@@ -344,7 +350,7 @@ class RBFNetwork(object):
                 # print(f"debug: the idex  is {idx} ")
                 input_sim = self._input_similarity(x, center, self.variances[idx])  # 输入相似度
                 output_sim = self._output_similarity(y[i], self.cluster_labels[idx])  # 输出相似度
-                # best_rho = self.cross_validate(X,y,k=5)
+
                 # 如果相似度超过阈值，则更新最佳聚类
                 # print(f"fit -> Cluster {idx}: input_sim: {input_sim}, output_sim: {output_sim}")
                 # print(f"in the fit(), the  is {best_rho}")
@@ -352,6 +358,8 @@ class RBFNetwork(object):
                     if input_sim > max_input_sim:
                         max_input_sim, best_cluster = input_sim, idx
                         # print(f"fit -> Updated best cluster to {best_cluster} with input_sim: {max_input_sim}")
+
+                        
 
             # 如果没有找到合适的聚类，则创建新聚类
             if best_cluster == -1:
@@ -373,6 +381,8 @@ class RBFNetwork(object):
         # Compute weights using pseudoinverse
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
         # print(f"fit -> Calculated weights: {self.weights}")
+        self.postive_outputs.sort()
+        print(f"fit -> postive_outputs: {self.postive_outputs}")
 
     # Predict using the trained model
     def predict(self, X):
@@ -382,16 +392,30 @@ class RBFNetwork(object):
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
-        prt = hidden_layer_output @ self.weights
+
+        raw_outputs = hidden_layer_output @ self.weights
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
         # print(f"[{min(prt)}, {max(prt)}]")
         """ plt.hist(prt,bins=10,color='red',alpha=0.6,label = 'prt distribution')
         plt.show() """
+
+        # percentiles = [self.compute_percentile(output_value) for output_value in raw_outputs]
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         # print(hidden_layer_output @ self.weights)
+        """    
+        threshold = 0.95
+        predictions = [1 if percentile > threshold else -1 for percentile in percentiles]
+        """
+
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
-        # print(f"predict -> Predictions: {predictions}")
-        return predictions
+
+        for prediction in predictions:
+            if prediction == 1:
+                count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
+                percentage = sum(count)/ len(self.postive_outputs)
+            print(f"predict -> Predictions: {predictions}")
+
+        return np.array(predictions)
     
     # Predict for a single input
     def single_predict(self, x):
@@ -400,11 +424,25 @@ class RBFNetwork(object):
         # 使用训练好的模型进行预测
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
+
+        raw_output = np.dot(hidden_layer_output,self.weights)
+
+
+        """    
+        percentile = self.compute_percentile(raw_output)
+        threshold = 0.95
+        prediction = 1 if percentile > threshold else -1 
+        """
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
-        predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
-        print(f"predict -> Predictions: {predictions}")
-        return predictions
-   
+        prediction = 1 if hidden_layer_output @ self.weights >= 0 else -1
+        print(f"predict -> Predictions: {prediction}")
+
+        if prediction == 1:
+            count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
+            percentage = sum(count)/ len(self.postive_outputs)
+
+        return prediction,percentage
+  
 
 if __name__ == '__main__':
     UName = 'TestU1'
