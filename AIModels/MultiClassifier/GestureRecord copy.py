@@ -28,13 +28,13 @@ dof = 7
 # rho=1.9
 epsilon=0
 # v0=1/np.sqrt(2)
-
+""" 
 def ecdf(data):
     sorted_data = np.sort(data)
     n = len(data)
     y = np.arange(1,n+1)/n
     return sorted_data,y
-
+"""
 def preprocess_data(window_df, flatten_mode):
     """
     根据 flatten_mode 参数选择不同的数据展平或矩阵保留方式。
@@ -324,6 +324,8 @@ class RBFNetwork(object):
 
         # Final model training with the best rho
         self.fit_clusters(X, y)
+
+
     # Train RBF network
     def fit_clusters(self, X, y):
         # print(f"Debug: this is fit_clusters")
@@ -339,6 +341,7 @@ class RBFNetwork(object):
         self.negative_outputs = []
 
         for i, x in enumerate(X):
+            print(f"y is {y[i]}")
 
             if y[i] == -1:
                 hidden_layer_output = [self._input_similarity(x, center, variance) for center,variance in zip(self.centers,self.variances)]
