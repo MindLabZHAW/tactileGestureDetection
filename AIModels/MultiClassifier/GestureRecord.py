@@ -21,9 +21,9 @@ import DataReader as DP
 global window_size, step_size
 window_size = 28
 step_size = 14
-flatten_mode = "flatten"
-num_features = 4
 dof = 7
+num_features = 4
+flatten_mode = "flatten"
 
 # rho=1.9
 epsilon=0
