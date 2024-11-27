@@ -25,16 +25,9 @@ flatten_mode = "flatten"
 num_features = 4
 dof = 7
 
-# rho=1.9
 epsilon=0
-# v0=1/np.sqrt(2)
-""" 
-def ecdf(data):
-    sorted_data = np.sort(data)
-    n = len(data)
-    y = np.arange(1,n+1)/n
-    return sorted_data,y
-"""
+
+
 def preprocess_data(window_df, flatten_mode):
     """
     根据 flatten_mode 参数选择不同的数据展平或矩阵保留方式。
@@ -186,7 +179,7 @@ class RBFNetwork(object):
         self.variances = []  # 存储每个聚类的方差
         self.weights = None  # 存储输出层的权重
         self.cluster_labels = []
-        self.negative_outputs = []
+        self.postive_outputs = []
 
     # Compute the variance of each feature in X
     def set_v0(self, X):
@@ -251,6 +244,7 @@ class RBFNetwork(object):
                 similarity_matrix[j, i] = similarity_matrix[i, j]  # Symmetric matrix
         # print(similarity_matrix)
         return similarity_matrix
+    
     # Determine the range for rho based on similarity scores in X
     def determine_rho_range(self,X):
         # print("DEBUG: this is determine_rho_range")
@@ -338,15 +332,14 @@ class RBFNetwork(object):
             self.cluster_labels.append(y[0])
 
 
-        self.negative_outputs = []
 
         for i, x in enumerate(X):
             print(f"y is {y[i]}")
 
-            if y[i] == -1:
+            if y[i] == 1:
                 hidden_layer_output = [self._input_similarity(x, center, variance) for center,variance in zip(self.centers,self.variances)]
                 output_value = np.dot(hidden_layer_output,self.weights)
-                self.negative_outputs.append(output_value)
+                self.postive_outputs.append(output_value)
         
             max_input_sim, best_cluster = -1, -1
             # print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
@@ -388,14 +381,8 @@ class RBFNetwork(object):
         # Compute weights using pseudoinverse
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
         # print(f"fit -> Calculated weights: {self.weights}")
-        self.negative_outputs.sort()
-        print(f"fit -> negative_outputs: {self.negative_outputs}")
-    
-    def compute_percentile(self,output_value):
-        print("this is compute_percentile")
-        count = sum(1 for val in self.negative_outputs if val < output_value)
-        percentile = count/len(self.negative_outputs) if self.negative_outputs else 0
-        return percentile
+        self.postive_outputs.sort()
+        print(f"fit -> postive_outputs: {self.postive_outputs}")
 
     # Predict using the trained model
     def predict(self, X):
@@ -412,16 +399,22 @@ class RBFNetwork(object):
         """ plt.hist(prt,bins=10,color='red',alpha=0.6,label = 'prt distribution')
         plt.show() """
 
-        percentiles = [self.compute_percentile(output_value) for output_value in raw_outputs]
+        # percentiles = [self.compute_percentile(output_value) for output_value in raw_outputs]
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         # print(hidden_layer_output @ self.weights)
+        """    
         threshold = 0.95
         predictions = [1 if percentile > threshold else -1 for percentile in percentiles]
+        """
 
+        predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
 
-        # predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
-        print(f"predict -> Predictions: {predictions}")
-        # return predictions
+        for prediction in predictions:
+            if prediction == 1:
+                count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
+                percentage = sum(count)/ len(self.postive_outputs)
+            print(f"predict -> Predictions: {predictions}")
+
         return np.array(predictions)
     
     # Predict for a single input
@@ -434,31 +427,22 @@ class RBFNetwork(object):
 
         raw_output = np.dot(hidden_layer_output,self.weights)
 
+
+        """    
         percentile = self.compute_percentile(raw_output)
-
         threshold = 0.95
-        prediction = 1 if percentile > threshold else -1
+        prediction = 1 if percentile > threshold else -1 
+        """
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
-        # predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
+        prediction = 1 if hidden_layer_output @ self.weights >= 0 else -1
         print(f"predict -> Predictions: {prediction}")
-        return prediction
-    
-def predict_gesture(classifiers,input_sample):
-    percentiles = {}
-    for classifier_name,classifier in classifiers.items():
-        prediction = classifier.single_predict(input_sample)
-        if prediction == 1:
-            hidden_layer_output = [classifier._input_similarity(input_sample,center,variance) for center,variance in zip(classifier.centers,classifier.variances)]
-            raw_output = np.dot(hidden_layer_output,classifier.weights)
-            percentiles = classifier.compute_percentile(raw_output)
-            percentiles[classifier_name] = percentiles
 
-    if percentiles:
-        best_classifier = max(percentiles,key=percentiles.get)
-        return best_classifier
-    else:
-        return None
-   
+        if prediction == 1:
+            count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
+            percentage = sum(count)/ len(self.postive_outputs)
+
+        return prediction,percentage
+  
 
 if __name__ == '__main__':
     UName = 'TestU1'

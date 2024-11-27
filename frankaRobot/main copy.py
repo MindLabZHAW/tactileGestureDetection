@@ -347,11 +347,16 @@ def contact_detection(data):
         contact_idx_map_MC = { 0:-1,1:1, 2:1, 3:1, 4:1}
         Contact_idx = contact_idx_map_MC[touch_type_idx]  # degenerate to contact idx
         prediction = -1
+        ecdf_perc = 0
         prediction_dict = {}
+        ECDF_dict = {}
         if Contact_idx == 1:
             for gesture_classifier in gesture_list:
-                gesture_prediction = gesture_classifier.gesture_model.single_predict(window.flatten())
+                gesture_prediction, gesture_output = gesture_classifier.gesture_model.single_predict(window.flatten())
+                gesture_ecdf_perc = count(n < gesture_output) / all
+                gesture_softmax = softmax(gesture_output)
                 prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
+                ECDF_dict[gesture_classifier.gesture_name] = gesture_ecdf_perc
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
