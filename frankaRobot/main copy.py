@@ -66,7 +66,7 @@ print(f"main_path is {main_path}")
 
 import sys
 sys.path.append(os.path.join(main_path,"AIModels","MultiClassifier"))
-from GestureRecords import Gesture, RBFNetwork
+from GestureRecords_softmax import Gesture, RBFNetwork
 
 # Parameters for the KNN models
 window_length = 28
@@ -353,10 +353,10 @@ def contact_detection(data):
         if Contact_idx == 1:
             for gesture_classifier in gesture_list:
                 gesture_prediction, gesture_output = gesture_classifier.gesture_model.single_predict(window.flatten())
-                gesture_ecdf_perc = count(n < gesture_output) / all
-                gesture_softmax = softmax(gesture_output)
+                # gesture_ecdf_perc = count(n < gesture_output) / all
+                gesture_softmax = gesture_classifier.gesture_model.softmax(gesture_output)
                 prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
-                ECDF_dict[gesture_classifier.gesture_name] = gesture_ecdf_perc
+                # ECDF_dict[gesture_classifier.gesture_name] = gesture_ecdf_perc
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time

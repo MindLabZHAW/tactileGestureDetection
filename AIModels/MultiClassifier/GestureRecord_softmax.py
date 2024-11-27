@@ -152,19 +152,23 @@ class Gesture(object):
         self.y_train = np.array(y_train)
         self.X_test = np.array(X_test)
         self.y_test = np.array(y_test)
-        print(f"y_train is {self.y_train}")
+        # print(f"y_train is {self.y_train}")
         # print(type(self.X_train[0][0]))
         # print(type(self.y_train[0]))
-        print(f"y_test is {self.y_test}")
+        # print(f"y_test is {self.y_test}")
         
     def classifier_train(self):
         self.gesture_model.fit(self.X_train, self.y_train)
 
     def classifier_test(self):
-        self.y_predict = self.gesture_model.predict(self.X_test)
+        self.y_predict,self.y_percent = self.gesture_model.predict(self.X_test)
         accuracy = accuracy_score(self.y_test, self.y_predict)
 
+        print(f"y_predictions is {len(self.y_predict)}")
         print(f"y_predictions is {self.y_predict}")
+        print(f"y_percent is {len(self.y_percent)}")
+        print(f"y_percent is {self.y_percent}")
+        print(f"y_test are {len(self.y_test)}")
         print(f"y_test are {self.y_test}")
         print("Test Results:", ["YES" if pred == 1 else "NO" for pred in self.y_predict])
         print(f"Accuracy: {accuracy:.2f}")
@@ -299,7 +303,7 @@ class RBFNetwork(object):
                 self.set_v0(X) # also can be set to X_train
                 
                 self.fit_clusters(X_train, y_train)
-                y_pred = self.predict(X_val)
+                y_pred = self.predict(X_val)[0]
                 accuracy = accuracy_score(y_val, y_pred)
                 fold_accuracies.append(accuracy)
                 # print(f'Accuracy: {accuracy}' )
@@ -367,6 +371,10 @@ class RBFNetwork(object):
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
         # print(f"fit -> Calculated weights: {self.weights}")
 
+    def softmax(self,x):
+        exp_x = np.exp(x)
+        return exp_x/np.sum(exp_x)
+
     def predict(self, X):
         # print(f"Debug: this is predict")
         # 使用训练好的模型进行预测
@@ -374,16 +382,17 @@ class RBFNetwork(object):
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
-        prt = hidden_layer_output @ self.weights
+        raw_output = hidden_layer_output @ self.weights
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
-        print(f"{prt}]")
+        # print(f"{prt}]")
         """ plt.hist(prt,bins=10,color='red',alpha=0.6,label = 'prt distribution')
         plt.show() """
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         # print(hidden_layer_output @ self.weights)
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
         # print(f"predict -> Predictions: {predictions}")
-        return predictions
+        percentages = self.softmax(raw_output)
+        return predictions,percentages
     
     def single_predict(self, x):
         print(f"Debug: this is single_predict")
@@ -392,9 +401,12 @@ class RBFNetwork(object):
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
-        predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
-        print(f"predict -> Predictions: {predictions}")
-        return predictions
+        raw_output = hidden_layer_output @ self.weights
+        prediction = 1 if raw_output >= 0 else -1
+        # print(f"predict -> Predictions: {predictions}")
+        percentage = self.softmax(raw_output)
+        # print(f"percentages -> percentages: {percentages}")
+        return prediction,percentage
    
 
 if __name__ == '__main__':

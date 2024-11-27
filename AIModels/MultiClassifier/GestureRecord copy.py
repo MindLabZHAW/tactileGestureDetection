@@ -158,10 +158,11 @@ class Gesture(object):
         self.gesture_model.fit(self.X_train, self.y_train)
 
     def classifier_test(self):
-        self.y_predict = self.gesture_model.predict(self.X_test)
+        self.y_predict,self.y_percentage = self.gesture_model.predict(self.X_test)
         accuracy = accuracy_score(self.y_test, self.y_predict)
 
         print(f"y_predictions is {self.y_predict}")
+        print(f"y_y_percentage is {self.y_percentage}")
         print(f"y_test are {self.y_test}")
         print("Test Results:", ["YES" if pred == 1 else "NO" for pred in self.y_predict])
         print(f"Accuracy: {accuracy:.2f}")
@@ -335,11 +336,6 @@ class RBFNetwork(object):
 
         for i, x in enumerate(X):
             print(f"y is {y[i]}")
-
-            if y[i] == 1:
-                hidden_layer_output = [self._input_similarity(x, center, variance) for center,variance in zip(self.centers,self.variances)]
-                output_value = np.dot(hidden_layer_output,self.weights)
-                self.postive_outputs.append(output_value)
         
             max_input_sim, best_cluster = -1, -1
             # print(f"fit -> Processing sample {i}, x: {x}, y: {y[i]}")
@@ -358,8 +354,6 @@ class RBFNetwork(object):
                     if input_sim > max_input_sim:
                         max_input_sim, best_cluster = input_sim, idx
                         # print(f"fit -> Updated best cluster to {best_cluster} with input_sim: {max_input_sim}")
-
-                        
 
             # 如果没有找到合适的聚类，则创建新聚类
             if best_cluster == -1:
@@ -381,11 +375,17 @@ class RBFNetwork(object):
         # Compute weights using pseudoinverse
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
         # print(f"fit -> Calculated weights: {self.weights}")
+        if y[i] == 1:
+            hidden_layer_output = [self._input_similarity(x, center, variance) for center,variance in zip(self.centers,self.variances)]
+            output_value = hidden_layer_output @ self.weights
+            self.postive_outputs.append(output_value)
+
         self.postive_outputs.sort()
         print(f"fit -> postive_outputs: {self.postive_outputs}")
 
     # Predict using the trained model
     def predict(self, X):
+        percentages = []
         # print(f"Debug: this is predict")
         # 使用训练好的模型进行预测
         hidden_layer_output = np.array([
@@ -409,13 +409,25 @@ class RBFNetwork(object):
 
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
 
-        for prediction in predictions:
+        for raw_output,prediction in zip(raw_outputs,predictions):
+            count = 0
             if prediction == 1:
-                count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
-                percentage = sum(count)/ len(self.postive_outputs)
-            print(f"predict -> Predictions: {predictions}")
+                for val in self.postive_outputs:
+                    if val < raw_output:
+                        count += 1   
+                print(f"count is {count}")
+                percentage = count/ len(self.postive_outputs)
 
-        return np.array(predictions)
+            else:
+                percentage = 0
+            percentages.append(percentage)
+
+
+
+        print(f"predict -> Predictions: {predictions}") 
+        print(f"predict -> percentages: {percentages}")
+
+        return np.array(predictions),np.array(percentages)
     
     # Predict for a single input
     def single_predict(self, x):
@@ -438,8 +450,8 @@ class RBFNetwork(object):
         print(f"predict -> Predictions: {prediction}")
 
         if prediction == 1:
-            count = [1 if val < raw_output for val in self.postive_outputs else 0 ]
-            percentage = sum(count)/ len(self.postive_outputs)
+            count = sum(1 for val in self.postive_outputs if val < raw_output  ) 
+            percentage = (count/ len(self.postive_outputs))*100
 
         return prediction,percentage
   
