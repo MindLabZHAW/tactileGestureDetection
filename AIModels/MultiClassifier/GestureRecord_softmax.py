@@ -391,6 +391,7 @@ class RBFNetwork(object):
         # print(hidden_layer_output @ self.weights)
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
         # print(f"predict -> Predictions: {predictions}")
+        
         percentages = self.softmax(raw_output)
         return predictions,percentages
     
@@ -404,9 +405,19 @@ class RBFNetwork(object):
         raw_output = hidden_layer_output @ self.weights
         prediction = 1 if raw_output >= 0 else -1
         # print(f"predict -> Predictions: {predictions}")
-        percentage = self.softmax(raw_output)
+        print(f"raw_output -> {raw_output}")
+        """  
+       if prediction == 1:
+            print(f"raw_output -> raw_output: {raw_output}")
+            percentage = self.softmax(raw_output)
+            print(f"percentage sofmax: {percentage}")
+            
+        else:
+            percentage = 0 
+        """
         # print(f"percentages -> percentages: {percentages}")
-        return prediction,percentage
+        # print(f"predict -> percentage: {percentage}")
+        return prediction,raw_output
    
 
 if __name__ == '__main__':
