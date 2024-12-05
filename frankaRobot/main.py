@@ -73,7 +73,7 @@ from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
 # Import Multiple Classifiers form "/AIModels/MultiClassifier"
 import sys
 sys.path.append(os.path.join(main_path,"AIModels","MultiClassifier"))
-from GestureRecord import Gesture, RBFNetwork
+from GestureRecord_softmax import Gesture, RBFNetwork
 
 # General Hyper-Parameters
 window_length = 28
@@ -83,12 +83,12 @@ classes_num = 5
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
 method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_11_07_2024_20-36-2450Epoch.pth") # relative path from AIModels
+model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_10_16_2024_13-37-2520Epoch.pth") # relative path from AIModels
 type_network = 'T2L3DCNN'
 # MultiClassifier Parameters and path
-MultiClassifier = False
+MultiClassifier = True
 if MultiClassifier:
-    user_folder_path = os.path.join(main_path, "user_data/TestU1")
+    user_folder_path = os.path.join(main_path, "user_data/TestU1/Gestures_Data")
 
 
 # Z-score Normalization Function for RNN
@@ -182,7 +182,9 @@ if MultiClassifier:
     user_file_list = os.listdir(user_folder_path)
     gesture_list = []
     # Load All Gesture Object
+    print(user_file_list)
     for gesture_file in user_file_list:
+        print(gesture_file)
         with open(os.path.join(user_folder_path, gesture_file), 'rb') as file:
             Gesture_load = pickle.load(file)
             gesture_list.append(Gesture_load)
@@ -423,18 +425,41 @@ def contact_detection(data):
         # initiallize the prediction dict for multiple classifier and default prediction
         prediction = -1
         prediction_dict = {}
+        gesture_raw_output_dict = {}
         # Apply multi classifier when contact
         if Contact_idx == 1:
             # Iterate over all classifier and get their result
             for gesture_classifier in gesture_list:
-                gesture_prediction = gesture_classifier.gesture_model.single_predict(window.flatten())
+                gesture_prediction,gesture_raw_output = gesture_classifier.gesture_model.single_predict(window.flatten())
+                print([gesture_prediction,gesture_raw_output])
                 prediction_dict[gesture_classifier.gesture_name] = gesture_prediction
+                if gesture_prediction == 1:#gesture_raw_output>0.00001:
+                    gesture_raw_output_dict[gesture_classifier.gesture_name] = gesture_raw_output
+        print(f"gesture_raw_output_dict: {gesture_raw_output_dict}")
+
+        percentage_dict_val = np.array(list(gesture_raw_output_dict.values()))
+        exp_x = np.exp(percentage_dict_val)
+        softmax_value = exp_x/np.sum(exp_x)
+        soft_dict = {key:softmax_value[i] for i,key in enumerate(gesture_raw_output_dict)}
+        print(f"softmax_value: {soft_dict}")
+
+        max_key = None
+        for k,v in soft_dict.items():
+            if (v == max(soft_dict.values())):
+                max_key = k
+                print(f"max_key: {max_key}")
+        # final result is {max_key} 
+
+            
+
 
     # Log prediction
     detection_duration  = rospy.get_time() - start_time
     if MultiClassifier:
-        multiclassifier_output = ','.join([f'{k}: {v}' for k, v in prediction_dict.items()])
-        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {multiclassifier_output} and the detection duration is {detection_duration}')
+        multiclassifier_output_pre = ','.join([f'{k}: {v}' for k, v in prediction_dict.items()])
+        multiclassifier_output_per = ','.join([f'{k}: {v}' for k, v in soft_dict.items()])
+        # final_result_key = max(percentage_dict,key=percentage_dict.get)
+        rospy.loginfo(f'Contact:{touch_type}, Predicted touch_type: {multiclassifier_output_pre} , Percentage: {multiclassifier_output_per},final result is {max_key} and the detection duration is {detection_duration}')
     else:
         rospy.loginfo(f'Predicted touch_type: {touch_type} and the detection duration is {detection_duration}')
     
