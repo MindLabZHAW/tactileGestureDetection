@@ -8,8 +8,8 @@ class make_folder_dataset:
         self.gesture_name = gesture_name
         
         self.path = folder_path
-        self.save_path = save_path
-        #os.makedirs(self.save_path)
+        self.save_path = os.path.join(save_path, f'{gesture_name}_process')
+        os.makedirs(self.save_path)
         self.num_lines_per_message = 130
         self.df = pd.DataFrame()
         self.df_dataset = pd.DataFrame()
@@ -156,7 +156,7 @@ def labelData(gesture_name, raw_data_dir, data_save_dir):
 
 
 # STEP2：Use sliding window to generate training and testing data
-def windowData(label_data, data_save_dir, window_size=28, step_size=14):
+def windowData(gesture_name, label_data, data_save_dir, window_size=28, step_size=14):
     # 初始化存储窗口信息的列表
     windowed_data = []
 
@@ -195,7 +195,7 @@ def windowData(label_data, data_save_dir, window_size=28, step_size=14):
     windowed_df = pd.concat(windowed_data, ignore_index=True)
 
     
-    data_save_name =  data_save_dir + '/2_labeled_window_dataset.csv'
+    data_save_name =  os.path.join(data_save_dir, f'{gesture_name}_process', '2_labeled_window_dataset.csv')
     if os.path.exists(data_save_name):
         os.remove(data_save_name)
 

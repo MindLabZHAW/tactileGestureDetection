@@ -94,7 +94,7 @@ class User(object):
             print(f"Gesture '{gesture_name}' already exists for user '{self.user_name}'.") 
         else:
             gesture_label_data = DP.labelData(gesture_name, gesture_data_raw_dir, gesture_data_process_save_dir)
-            gesture_window_data = DP.windowData(gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
+            gesture_window_data = DP.windowData(gesture_name, gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
             gesture = Gesture(gesture_name=gesture_name, gesture_data=gesture_window_data)
             self.gesture_dict[gesture_name] = gesture
             save = input('Do you wish to save this gesture?(Y/n): ')

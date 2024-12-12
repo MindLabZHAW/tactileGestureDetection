@@ -86,6 +86,7 @@ class User(object):
         self.gesture_storage_dir = os.path.join(storage_dir, self.user_name)
         os.makedirs(self.gesture_storage_dir, exist_ok=True)
 
+
     def get_gesture_info(self):
         gesture_list = list(self.gesture_dict.keys())
         print(f"Gesture list: {gesture_list}")
@@ -97,13 +98,14 @@ class User(object):
             print(f"Gesture '{gesture_name}' already exists for user '{self.user_name}'.") 
         else:
             gesture_label_data = DP.labelData(gesture_name, gesture_data_raw_dir, gesture_data_process_save_dir)
-            gesture_window_data = DP.windowData(gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
+            gesture_window_data = DP.windowData(gesture_name, gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
             gesture = Gesture(gesture_name=gesture_name, gesture_data=gesture_window_data)
             self.gesture_dict[gesture_name] = gesture
             save = input('Do you wish to save this gesture?(Y/n): ')
             if save == 'Y':
                 print()
-                with open(os.path.join(self.gesture_storage_dir, f'{gesture_name}.pickle'),"wb") as file:
+                os.makedirs(os.path.join(self.gesture_storage_dir,'gesture_pickle'),exist_ok=True)
+                with open(os.path.join(self.gesture_storage_dir,'gesture_pickle', f'{gesture_name}.pickle'),"wb") as file:
                     pickle.dump(gesture,file)
                 print(f"Gesture '{gesture_name}' for user '{self.user_name}' is saved.")
             print(f"Gesture '{gesture_name}' added for user '{self.user_name}'.")
@@ -393,10 +395,10 @@ class RBFNetwork(object):
         # print(f"predict -> Predictions: {predictions}")
         
         percentages = self.softmax(raw_output)
-        return predictions,percentages
+        return predictions, percentages
     
     def single_predict(self, x):
-        print(f"Debug: this is single_predict")
+        # print(f"Debug: this is single_predict")
        
         # 使用训练好的模型进行预测
         hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
@@ -405,7 +407,7 @@ class RBFNetwork(object):
         raw_output = hidden_layer_output @ self.weights
         prediction = 1 if raw_output >= 0 else -1
         # print(f"predict -> Predictions: {predictions}")
-        print(f"raw_output -> {raw_output}")
+        # print(f"raw_output -> {raw_output}")
         """  
        if prediction == 1:
             print(f"raw_output -> raw_output: {raw_output}")
@@ -421,13 +423,13 @@ class RBFNetwork(object):
    
 
 if __name__ == '__main__':
-    UName = 'TestU1'
+    UName = 'DSTest'
     UPass = '123465'
     CurrentUser = User(user_name=UName, password=UPass)
     CurrentUser.get_gesture_info
     # add_gesture_flag = input('Add new gesture?(Y/n):')
     add_gesture_flag = 'Y'
     if add_gesture_flag == 'Y':
-        GName = 'TestG1'
+        GName = '7PatRight'
         # Data Recording Progress should be added here
-        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7ST-S1', CurrentUser.gesture_storage_dir)
+        CurrentUser.add_gesture(GName, 'DATA/GestureData/G1204-7R-PAT-DS', CurrentUser.gesture_storage_dir)
