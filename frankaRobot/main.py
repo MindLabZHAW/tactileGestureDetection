@@ -86,7 +86,7 @@ method = 'Freq'
 model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_12_04_2024_18-37-2150Epoch.pth") # relative path from AIModels
 type_network = 'T2L3DCNN'
 # MultiClassifier Parameters and path
-MultiClassifier = True
+MultiClassifier = False
 if MultiClassifier:
     user_folder_path = os.path.join(main_path, "user_data/DS/gesture_pickle")
 
