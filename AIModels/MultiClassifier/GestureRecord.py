@@ -21,9 +21,9 @@ import DataReader as DP
 global window_size, step_size
 window_size = 28
 step_size = 14
-dof = 7
-num_features = 4
 flatten_mode = "flatten"
+num_features = 4
+dof = 7
 
 # rho=1.9
 epsilon=0
@@ -97,13 +97,14 @@ class User(object):
             print(f"Gesture '{gesture_name}' already exists for user '{self.user_name}'.") 
         else:
             gesture_label_data = DP.labelData(gesture_name, gesture_data_raw_dir, gesture_data_process_save_dir)
-            gesture_window_data = DP.windowData(gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
+            gesture_window_data = DP.windowData(gesture_name, gesture_label_data, gesture_data_process_save_dir, window_size, step_size)
             gesture = Gesture(gesture_name=gesture_name, gesture_data=gesture_window_data)
             self.gesture_dict[gesture_name] = gesture
             save = input('Do you wish to save this gesture?(Y/n): ')
             if save == 'Y':
                 print()
-                with open(os.path.join(self.gesture_storage_dir, f'{gesture_name}.pickle'),"wb") as file:
+                os.makedirs(os.path.join(self.gesture_storage_dir,'gesture_pickle'),exist_ok=True)
+                with open(os.path.join(self.gesture_storage_dir,'gesture_pickle', f'{gesture_name}.pickle'),"wb") as file:
                     pickle.dump(gesture,file)
                 print(f"Gesture '{gesture_name}' for user '{self.user_name}' is saved.")
             print(f"Gesture '{gesture_name}' added for user '{self.user_name}'.")
@@ -152,19 +153,23 @@ class Gesture(object):
         self.y_train = np.array(y_train)
         self.X_test = np.array(X_test)
         self.y_test = np.array(y_test)
-        print(f"y_train is {self.y_train}")
+        # print(f"y_train is {self.y_train}")
         # print(type(self.X_train[0][0]))
         # print(type(self.y_train[0]))
-        print(f"y_test is {self.y_test}")
+        # print(f"y_test is {self.y_test}")
         
     def classifier_train(self):
         self.gesture_model.fit(self.X_train, self.y_train)
 
     def classifier_test(self):
-        self.y_predict = self.gesture_model.predict(self.X_test)
+        self.y_predict,self.y_percent = self.gesture_model.predict(self.X_test)
         accuracy = accuracy_score(self.y_test, self.y_predict)
 
+        print(f"y_predictions is {len(self.y_predict)}")
         print(f"y_predictions is {self.y_predict}")
+        print(f"y_percent is {len(self.y_percent)}")
+        print(f"y_percent is {self.y_percent}")
+        print(f"y_test are {len(self.y_test)}")
         print(f"y_test are {self.y_test}")
         print("Test Results:", ["YES" if pred == 1 else "NO" for pred in self.y_predict])
         print(f"Accuracy: {accuracy:.2f}")
@@ -198,9 +203,11 @@ class RBFNetwork(object):
         # print("DEBUG: this is _input_similarity")
         # 计算输入样本x与聚类中心的相似度
         # print(-np.linalg.norm(x - center))
+        # print(variance)
         similarity = np.exp(-np.linalg.norm(x - center) ** 2 / (2 * variance ** 2))
         # similarity = np.corrcoef(x,center)[0,1]
         # print(f"_input_similarity -> x: {x}, center: {center}, variance :{variance} ,similarity: {similarity}")
+        # print(f"_input_similarity -> similarity: {similarity}")
         return similarity
 
     def _output_similarity(self, y, cluster_y):
@@ -299,7 +306,7 @@ class RBFNetwork(object):
                 self.set_v0(X) # also can be set to X_train
                 
                 self.fit_clusters(X_train, y_train)
-                y_pred = self.predict(X_val)
+                y_pred = self.predict(X_val)[0]
                 accuracy = accuracy_score(y_val, y_pred)
                 fold_accuracies.append(accuracy)
                 # print(f'Accuracy: {accuracy}' )
@@ -311,7 +318,7 @@ class RBFNetwork(object):
                 best_rho = rho
 
         self.rho = best_rho
-        # print(f"Selected best rho: {self.rho}")
+        print(f"Selected best rho: {self.rho}")
 
         # Final model training with the best rho
         self.fit_clusters(X, y)
@@ -361,11 +368,11 @@ class RBFNetwork(object):
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
-        # print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
+        print(f"fit -> Hidden layer output matrix:\n{hidden_layer_output}")
         
         # 使用伪逆计算输出层的权重
         self.weights = np.linalg.pinv(hidden_layer_output) @ y
-        # print(f"fit -> Calculated weights: {self.weights}")
+        print(f"fit -> Calculated weights: {self.weights}")
 
     def predict(self, X):
         # print(f"Debug: this is predict")
@@ -374,37 +381,45 @@ class RBFNetwork(object):
             [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
             for x in X
         ])
-        prt = hidden_layer_output @ self.weights
-        # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
-        print(f"{prt}]")
+        raw_output = hidden_layer_output @ self.weights
+        print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
+        # print(f"{prt}]")
         """ plt.hist(prt,bins=10,color='red',alpha=0.6,label = 'prt distribution')
         plt.show() """
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
         # print(hidden_layer_output @ self.weights)
         predictions = np.where(hidden_layer_output @ self.weights >= 0, 1, -1)
         # print(f"predict -> Predictions: {predictions}")
-        return predictions
+        
+        percentages = raw_output # use raw output as measurement
+        return predictions, percentages
     
     def single_predict(self, x):
-        print(f"Debug: this is single_predict")
+        # print(f"Debug: this is single_predict")
        
         # 使用训练好的模型进行预测
-        hidden_layer_output = [self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)]
+        # print(f"predict -> Input X: {x}")
+        hidden_layer_output = np.array([self._input_similarity(x, center,variance) for center ,variance,in zip(self.centers,self.variances)])
         # print(f"predict -> Hidden layer output for predictions:\n{hidden_layer_output}")
         # 输出大于0.5的预测为1（YES），否则为-1（NO）
-        predictions = 1 if hidden_layer_output @ self.weights >= 0 else -1
-        print(f"predict -> Predictions: {predictions}")
-        return predictions
+        # print(f"predict -> Using Weight: {self.weights}")
+        # print(f"predict -> Centers: {self.centers}")
+        # print(f"predict -> Variances: {self.variances}")
+        raw_output = hidden_layer_output @ self.weights
+        predictions = 1 if raw_output >= 0 else -1
+        # print(f"predict -> Predictions: {predictions}")
+        # print(f"predict -> raw_output: {raw_output}")
+        return predictions, raw_output
    
 
 if __name__ == '__main__':
-    UName = 'TestU1'
+    UName = 'DSTest'
     UPass = '123465'
     CurrentUser = User(user_name=UName, password=UPass)
     CurrentUser.get_gesture_info
     # add_gesture_flag = input('Add new gesture?(Y/n):')
     add_gesture_flag = 'Y'
     if add_gesture_flag == 'Y':
-        GName = 'TestG1'
+        GName = '7PatRight'
         # Data Recording Progress should be added here
-        CurrentUser.add_gesture(GName, 'DATA/rawData/0910-7ST-S1', CurrentUser.gesture_storage_dir)
+        CurrentUser.add_gesture(GName, 'DATA/GestureData/G1204-7R-PAT-DS', CurrentUser.gesture_storage_dir)
