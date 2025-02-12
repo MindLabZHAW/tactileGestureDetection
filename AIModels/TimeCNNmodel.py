@@ -35,7 +35,7 @@ batch_size = 64
 lr = 0.001
 n_epochs = 40
 
-network_type = '1L3DTCNN'
+network_type = '2L3DTCNN'
 train_all_data = False # train a model using all avaiable data
 normalization = False
 
