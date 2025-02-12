@@ -25,7 +25,7 @@ time_window = 28
 batch_size = 64
 lr = 0.001
 n_epochs = 50
-network_type = 'T2L3DCNN'
+network_type = '2LCNN'
 train_all_data = False
 
 class CNNSequence(nn.Module):
@@ -145,7 +145,7 @@ def get_output(data_ds, model):
 
 if __name__ == '__main__':
     # NPZ Raw Data Loading
-    if network_type in ['2LCNN', '2L3DCNN']:
+    if network_type in ['2LCNN', '2L3DCNN']: # Used for STFT Image
         loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['stft_matrices'])
         labels_str = loaded_data['labels']
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
-    elif network_type == '3LCNN':
+    elif network_type == '3LCNN': # Used for CWT Image
         loaded_data = np.load('DATA/CWT_images/cwt_matrices.npz', allow_pickle=True)    
         cwt_matrices = np.array(loaded_data['cwt_matrices'])
         labels_str = loaded_data['labels']
@@ -161,7 +161,7 @@ if __name__ == '__main__':
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(cwt_matrices, labels, test_size=0.2, random_state=2024)
-    if network_type == 'T2L3DCNN':
+    if network_type == 'T2L3DCNN': # Used for T Image
         loaded_data = np.load('DATA/T_images/T_matrices.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['T_matrices'])
         labels_str = loaded_data['labels']

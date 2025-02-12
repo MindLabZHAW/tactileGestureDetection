@@ -83,10 +83,10 @@ classes_num = 5
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
 method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_12_04_2024_18-37-2150Epoch.pth") # relative path from AIModels
-type_network = 'T2L3DCNN'
+model_path_relative = os.path.join("AIModels/TrainedModels", "2LCNN_02_10_2025_19-55-55Pose1Epoch50.pth") # relative path from AIModels
+type_network = '2LCNN'
 # MultiClassifier Parameters and path
-MultiClassifier = True
+MultiClassifier = False
 if MultiClassifier:
     user_folder_path = os.path.join(main_path, "user_data/DS/gesture_pickle")
 
@@ -193,7 +193,7 @@ if MultiClassifier:
 # Prepare window to collect features
 if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
-    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
+    print(f'{method}-{type_network}\'s window size is {window.shape}')
 elif method == 'RNN':
     window = np.zeros([dof, features_num * window_length])
     window2 = np.zeros([dof, features_num * window_length])
@@ -467,7 +467,8 @@ def contact_detection(data):
     start_time = np.array(start_time).tolist()
     time_sec = int(start_time)
     time_nsec = start_time-time_sec
-    model_msg.data = np.append(np.array([time_sec-big_time_digits, time_nsec, detection_duration, touch_type_idx], dtype=np.complex128), np.hstack(window))
+    # model_msg.data = np.append(np.array([time_sec-big_time_digits, time_nsec, detection_duration, touch_type_idx], dtype=np.complex128), np.hstack(window))
+    model_msg.data = np.array([time_sec-big_time_digits, time_nsec, detection_duration, touch_type_idx], dtype=np.complex128)
     # publish the model message
     # print(model_msg)
     model_pub.publish(model_msg)

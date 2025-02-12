@@ -36,7 +36,7 @@ lr = 0.001
 n_epochs = 100
 
 network_type = 'NCPCfC'
-train_all_data = False # train a model using all avaiable data
+train_all_data = True # train a model using all avaiable data
 
 # collision = False; localization = False; n_epochs = 15; batch_size = 64; num_classes = 5; lr = 0.001
 # collision = True; localization = False; n_epochs = 120; batch_size = 64; num_classes = 2; lr = 0.001
@@ -48,10 +48,10 @@ class Sequence(nn.Module):
         if network_type == 'LSTM':
             hidden_size = 50
             self.innernet = nn.LSTM(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
-        elif network_type == 'GRU':
+        elif network_type == 'GRU': # >100
             hidden_size = 50
             self.innernet = nn.GRU(input_size=num_features * time_window, hidden_size=hidden_size, num_layers=1, batch_first=True)
-        elif network_type == 'FCLTC':
+        elif network_type == 'FCLTC': # 50-60
             units = 50
             self.innernet = LTC(input_size=num_features * time_window, units=units, batch_first=True)
         elif network_type == 'FCCfC':
@@ -112,8 +112,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_train.csv')
-    testing_data = create_tensor_dataset(main_path + 'DATA/labeled_window_dataset_test.csv')
+    training_data = create_tensor_dataset(main_path + 'DATA/6_labeled_window_dataset_train.csv')
+    testing_data = create_tensor_dataset(main_path + 'DATA/6_labeled_window_dataset_test.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)

@@ -14,7 +14,7 @@ from imblearn.under_sampling import RandomUnderSampler
 
 
 # Load dataset
-data_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/DATA/labeled_window_dataset.csv'
+data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/3_labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
 
@@ -113,33 +113,33 @@ joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
 
 
-# # Perform cross-validation on the training set
-# cv_scores = cross_val_score(best_knn,X_train,y_train,cv = 5)
+# Perform cross-validation on the training set
+cv_scores = cross_val_score(best_knn,X_train,y_train,cv = 5)
 
-# # Predict
-# y_pred = best_knn.predict(X_test)
-# x_temp = [1.5800049300305543,-0.1132444739341735,-17.335622787475586,-1.891367793083191,17.736581802368164,0.410483717918396,2.499279022216797,-0.0999257862567901,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-0.0372522467744296,0.1544631542649355,-0.1885553765690959,0.0061587490864882,0.02111635161377,0.1464784342336267,-0.0821320042837524,-1.8830910129421636,-0.1403315473000208,0.5157931913428841,-2.673449012281833,0.1833513857656054,2.5995610360039607,0.9506861179069428,-1.8830015233952444,-0.1403389378745897,0.5158180609985245,-2.673378670485581,0.1832823554716121,2.599604072029283,0.950686113546292,-0.0001860987989787,-0.0003809868003953,-0.0013967747863216,-0.0002630234226706,-4.251183452002199e-05,-0.0082523966219078,-0.0003621679285794,0.0,0.0,0.0,0.0,0.0,0.0,0.0,8.948954691900823e-05,-7.3905745689162305e-06,2.4869655640302742e-05,7.034179625264869e-05,-6.903029399329963e-05,4.303602532207407e-05,-4.360650729395843e-09,0.0001860987989787,0.0003809868003953,0.0013967747863216,0.0002630234226706,4.251183452002199e-05,0.0082523966219078,0.0003621679285794,0.1132444739341735,17.335622787475586,1.891367793083191,-17.736581802368164,-0.410483717918396,-2.499279022216797,0.0999257862567901,0,1]
-# y_temp = best_knn.predict([x_temp])
-# print(y_temp)
+# Predict
+y_pred = best_knn.predict(X_test)
+x_temp = [1.5800049300305543,-0.1132444739341735,-17.335622787475586,-1.891367793083191,17.736581802368164,0.410483717918396,2.499279022216797,-0.0999257862567901,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-0.0372522467744296,0.1544631542649355,-0.1885553765690959,0.0061587490864882,0.02111635161377,0.1464784342336267,-0.0821320042837524,-1.8830910129421636,-0.1403315473000208,0.5157931913428841,-2.673449012281833,0.1833513857656054,2.5995610360039607,0.9506861179069428,-1.8830015233952444,-0.1403389378745897,0.5158180609985245,-2.673378670485581,0.1832823554716121,2.599604072029283,0.950686113546292,-0.0001860987989787,-0.0003809868003953,-0.0013967747863216,-0.0002630234226706,-4.251183452002199e-05,-0.0082523966219078,-0.0003621679285794,0.0,0.0,0.0,0.0,0.0,0.0,0.0,8.948954691900823e-05,-7.3905745689162305e-06,2.4869655640302742e-05,7.034179625264869e-05,-6.903029399329963e-05,4.303602532207407e-05,-4.360650729395843e-09,0.0001860987989787,0.0003809868003953,0.0013967747863216,0.0002630234226706,4.251183452002199e-05,0.0082523966219078,0.0003621679285794,0.1132444739341735,17.335622787475586,1.891367793083191,-17.736581802368164,-0.410483717918396,-2.499279022216797,0.0999257862567901,0,1]
+y_temp = best_knn.predict([x_temp])
+print(y_temp)
 
-# # Evaluate accuracy
-# accuracy = accuracy_score(y_test, y_pred)
-# print(f'Accuracy: {accuracy:.2f}')
+# Evaluate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.2f}')
 
-# # Print predicted and true labels
-# print(f'Predicted labels: {y_pred}')
-# print(f'True labels: {y_test}')
+# Print predicted and true labels
+print(f'Predicted labels: {y_pred}')
+print(f'True labels: {y_test}')
 
-# # Display classification report
-# print(classification_report(y_test, y_pred, target_names=label_classes))
+# Display classification report
+print(classification_report(y_test, y_pred, target_names=label_classes))
 
-# conf_matrix = confusion_matrix(y_test,y_pred)
+conf_matrix = confusion_matrix(y_test,y_pred)
 
-# #plot confusion matrix using seabon
-# plt.figure()
-# sns.heatmap(conf_matrix,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
-# plt.xlabel('Predicted Label')
-# plt.ylabel('True Label')
-# plt.title('Confusion Matrix')
-# plt.show()
+#plot confusion matrix using seabon
+plt.figure()
+sns.heatmap(conf_matrix,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion Matrix')
+plt.show()
 

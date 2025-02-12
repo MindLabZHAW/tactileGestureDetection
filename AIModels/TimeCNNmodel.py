@@ -125,8 +125,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_train_Normalization.csv')
-    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/6_labeled_window_dataset_test_Normalization.csv')
+    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset.csv')
+    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset.csv')
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)

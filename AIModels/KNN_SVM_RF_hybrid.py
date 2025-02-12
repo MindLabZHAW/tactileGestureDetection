@@ -17,7 +17,7 @@ import joblib
 import os
 
 # Load data
-data_path = '/home/mindlab/weiminDeqing/tactileGestureDetection/DATA/labeled_window_dataset.csv'
+data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/3_labeled_window_dataset.csv'
 df = pd.read_csv(data_path)
 
  # Define columns corresponding to each joint
