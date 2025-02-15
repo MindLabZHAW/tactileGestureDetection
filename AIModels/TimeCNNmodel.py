@@ -28,12 +28,12 @@ main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
 
 num_features = 4
-num_classes = 5
+num_classes = 4
 time_window = 28
 
 batch_size = 64
 lr = 0.001
-n_epochs = 40
+n_epochs = 50
 
 network_type = '2L3DTCNN'
 train_all_data = False # train a model using all avaiable data
@@ -125,8 +125,8 @@ if __name__ == '__main__':
     # Load data and create training and testing sets
     # training_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_train.csv',num_classes=num_classes, collision=collision, localization= localization, num_features=num_features)
     # testing_data = create_tensor_dataset_without_torque('../contactInterpretation-main/dataset/realData/contact_detection_test.csv',num_classes=num_classes, collision=collision, localization= localization,num_features=num_features)
-    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset.csv')
-    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset.csv')
+    training_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset_post123.csv', num_classes=num_classes)
+    testing_data = create_tensor_dataset_tcnn(main_path + 'DATA/3_labeled_window_dataset_post123.csv', num_classes=num_classes)
 
     
     train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle= True)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     print(f"Labels batch shape: {train_labels.size()}")
 
     # Build the model  
-    model= Time3DCNNSequence(network_type)
+    model= Time3DCNNSequence(network_type, num_classes=num_classes)
     model = model.double() # Used to keep the input as double type 
     # Use Adam optimizer and CrossEntropyLoss as the loss function
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     model.eval()
     
     with torch.no_grad():
-        confusionMatrix = ConfusionMatrix(task = "multiclass", num_classes= num_classes)
+        confusionMatrix = ConfusionMatrix(task = "multiclass", num_classes=num_classes)
 
         y_pred, y_test = get_output(testing_data, model)
         print('y_pred ',y_pred)
@@ -186,7 +186,12 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = label_classes = ["NC", "ST", "DT", "P", "G"]
+        if num_classes == 5:
+            label_classes = label_classes = ["NC", "ST", "DT", "P", "G"]
+        elif num_classes == 4:
+            label_classes = label_classes = ["NC", "ST", "P", "G"]
+        else:
+            print("Wrong Class Number")
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')

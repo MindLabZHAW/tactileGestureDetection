@@ -79,12 +79,12 @@ from GestureRecord_softmax import Gesture, RBFNetwork
 window_length = 28
 dof = 7
 features_num = 4
-classes_num = 5
+classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
 method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels", "2LCNN_02_10_2025_19-55-55Pose1Epoch50.pth") # relative path from AIModels
-type_network = '2LCNN'
+model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_02_13_2025_14-37-11Post1Epoch50.pth") # relative path from AIModels
+type_network = 'T2L3DCNN'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
@@ -201,9 +201,14 @@ elif method == 'RNN':
     print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'TCNN':
     window = np.zeros([window_length, dof, features_num])
+    window2 = np.zeros([window_length, dof, features_num])
+    window3 = np.zeros([window_length, dof, features_num])
     print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'Freq':
     window = np.zeros([window_length, features_num * dof])
+    stft_matrix = np.zeros([9, 29, features_num * dof])
+    stft_matrix2 = np.zeros([9, 29, features_num * dof])
+    stft_matrix3 = np.zeros([9, 29, features_num * dof])
     print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 
 
@@ -215,7 +220,7 @@ model_msg = Floats()
 
 # Callback function for contact detection and gesture prediction
 def contact_detection(data):
-    global window, window2, window3, results, big_time_digits
+    global window, window2, window3, stft_matrix, stft_matrix2, stft_matrix3, results, big_time_digits
 
     start_time = rospy.get_time()
 
@@ -281,7 +286,12 @@ def contact_detection(data):
         # Perform majority voting
         touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
         # Project the int index to string output
-        label_map_RNN = {0:"NC", 1:"ST", 2:"DT", 3:"P", 4:"G"}
+        if classes_num == 5:
+            label_map_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        elif classes_num == 4:
+            label_map_RNN = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+        else:   
+            print("Wrong Class Number in Label Map RNN")
         touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
         # Store the results
         time_sec = int(rospy.get_time())
@@ -292,28 +302,55 @@ def contact_detection(data):
         # Reshape the new comming data
         new_block = np.expand_dims(np.column_stack((e,de,tau_J,tau_ext)), axis=0)
         # print(new_block.shape)
+        
+        # Update window3(t-2) and window2(t-1) and window(t) in sequence
+        window3 = window2
+        window2 = window
         # Shift the window to contain the newest data and exclude the oldest data
         window = np.append(window[1:, :, :], new_block, axis = 0)
+        
         # Normalization
         if Normalization:
             window_mean = np.mean(window, axis=0)
             window_std = np.std(window, axis=0)
             window = (window - window_mean) / (window_std + 1e-5)
+        
         # Predict the touch_type using the CNN model with T-Image
+        # Use the network to predict in all 3 windows
         with torch.no_grad():
             # Prepare inputs
             # print(window.shape)
-            data_input = torch.from_numpy(window).unsqueeze(0).to(device).float()
-            # Calculate model outputs
+            data_input1 = torch.from_numpy(window).unsqueeze(0).to(device).float()
+            data_input2 = torch.from_numpy(window2).unsqueeze(0).to(device).float()
+            data_input3 = torch.from_numpy(window3).unsqueeze(0).to(device).float()
+            
+            # Calculate model outputs for each window
+            model_out1 = model(data_input1).detach()
+            model_out2 = model(data_input2).detach()
+            model_out3 = model(data_input3).detach()
             # print(data_input.shape)
-            model_out = model(data_input).detach()
-            # Get predictions for each window 
-            output = torch.argmax(model_out, dim=1)
+
+            # Get predictions for each window
+            output1 = torch.argmax(model_out1, dim=1)
+            output2 = torch.argmax(model_out2, dim=1)
+            output3 = torch.argmax(model_out3, dim=1) 
         # Convert outputs to CPU numpy arrays
-        touch_type_idx = output.cpu().numpy()[0]
+        output1_idx = output1.cpu().numpy()[0]
+        output2_idx = output2.cpu().numpy()[0]
+        output3_idx = output3.cpu().numpy()[0]
+        # Collect outputs
+        outputs_idx = [output1_idx, output2_idx, output3_idx]
+        # Perform majority voting
+        touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
+
         # Project the int index to string output
-        label_map_RNN = {0:"NC", 1:"ST", 2:"DT", 3:"P", 4:"G"}
-        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
+        if classes_num == 5:
+            label_map_TCNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        elif classes_num == 4:
+            label_map_TCNN = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+        else:   
+            print("Wrong Class Number in Label Map TCNN")
+        touch_type = label_map_TCNN[touch_type_idx]  # Get the actual touch type label
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
@@ -393,23 +430,40 @@ def contact_detection(data):
         # Predict the touch_type using the CNN Model with F-Image
         with torch.no_grad():
             # Change the multiple 2D data_matrix in list into stacked 3D stft_matrix
+            stft_matrix3 = stft_matrix2
+            stft_matrix2 = stft_matrix
             stft_matrix = np.stack(data_matrix, axis=-1)
             # print(stft_matrix.shape)
             # print(torch.unsqueeze(transform(stft_matrix),0).shape)
             # Prepare inputs
             # transform 3rd dimension as channel dimension [(F,T,C) to (C,F,T)]
             stft_matrix_input = transform(stft_matrix).unsqueeze(0).to(device).float()
+            stft_matrix_input2 = transform(stft_matrix2).unsqueeze(0).to(device).float()
+            stft_matrix_input3 = transform(stft_matrix3).unsqueeze(0).to(device).float()
+            
             # print(stft_matrix_input.shape)
             # Calculate model outputs
-            model_out = model(stft_matrix_input).detach()
+            model_out1 = model(stft_matrix_input).detach()
+            model_out2 = model(stft_matrix_input2).detach()
+            model_out3 = model(stft_matrix_input3).detach()
             # print(model_out)
             # Get predictions
-            output = torch.argmax(model_out)
+            output1_idx = int(torch.argmax(model_out1).cpu())
+            output2_idx = int(torch.argmax(model_out2).cpu())
+            output3_idx = int(torch.argmax(model_out3).cpu())
+            # Collect outputs
+            outputs_idx = [output1_idx, output2_idx, output3_idx]
+            # Perform majority voting
+            touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
             # print(output)
         # Project the int index to string output
-        touch_type_idx = int(output.cpu())
-        label_map_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
-        touch_type = label_map_RNN[touch_type_idx]  # Get the actual touch type label
+        if classes_num == 5:
+            label_map_Freq = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        elif classes_num == 4:
+            label_map_Freq = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+        else:   
+            print("Wrong Class Number in Label Map Freq")
+        touch_type = label_map_Freq[touch_type_idx]  # Get the actual touch type label
         # Store the results
         time_sec = int(rospy.get_time())
         results.append([time_sec, touch_type])
@@ -477,8 +531,18 @@ if __name__ == "__main__":
     global publish_output, big_time_digits
 
     # Load inverse label map for decoding predictions
-    label_map_inv = {0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
-    label_classes_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+    if classes_num == 5:
+        label_map_inv = {0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        # label_classes_RNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        # label_classes_TCNN = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+        # label_classes_Freq = { 0:"NC",1:"ST", 2:"DT", 3:"P", 4:"G"}
+    elif classes_num == 4:
+        label_map_inv = {0:"NC",1:"ST", 2:"P", 3:"G"}
+        # label_classes_RNN = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+        # label_classes_TCNN = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+        # label_classes_Freq = { 0:"NC",1:"ST", 2:"P", 3:"G"}
+    else:   
+        print("Wrong Class Number in Main")
     event = Event()
     
     # Create robot controller instance

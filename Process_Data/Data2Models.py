@@ -152,9 +152,9 @@ class create_tensor_dataset_without_torque(Dataset):
         self.data_input.columns = range(self.num_features_dataset * self.data_seq)
         self.data_input = self.data_input.loc[:][joint_data_pos]
 
-class create_tensor_dataset(Dataset):
+class create_tensor_dataset(Dataset):cc
     
-    def __init__(self, path='../contactInterpretation-main/dataset/realData/labeled_window_dataset.csv', num_classes=4, num_features=4):
+    def __init__(self, path='../contactInterpretation-main/dataset/realData/3_labeled_window_dataset_post123.csv', num_classes=4, num_features=4):
         self.path = path
         self.num_classes = num_classes
         self.num_features = num_features
@@ -197,7 +197,12 @@ class create_tensor_dataset(Dataset):
         for window_id, group in grouped:
             # encoding label
             label_i = group['window_touch_type'].iloc[0]
-            label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            if self.num_classes == 5:
+                label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            elif self.num_classes == 4:
+                label_map = {'NC': 0, 'ST': 1, 'P': 2, 'G': 3}
+            else:   
+                print("Wrong Class Number in DataLoader")
             self.data_target.append(label_map.get(label_i, -1))
             # resize to 7 lines data(7 joints)
             joints_data = np.zeros((7,group.shape[0] * self.num_features)) # generate a initial numpy array 7x(4*28)
@@ -267,7 +272,12 @@ class create_tensor_dataset_tcnn(Dataset):
         for window_id, group in grouped:
             # encoding label
             label_i = group['window_touch_type'].iloc[0]
-            label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            if self.num_classes == 5:
+                label_map = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+            elif self.num_classes == 4:
+                label_map = {'NC': 0, 'ST': 1, 'P': 2, 'G': 3}
+            else:   
+                print("Wrong Class Number in DataLoader")
             self.data_target.append(label_map.get(label_i, -1))
             # get and resize window data to windowlen x 7(dof) x featurenum
             data_i = group[joints_colums].values

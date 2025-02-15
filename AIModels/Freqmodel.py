@@ -19,13 +19,13 @@ from Data2Models import create_tensor_dataset_stft
 main_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+'/'
 path_name = os.path.dirname(os.path.abspath(__file__))+'/TrainedModels/'
 
-num_classes = 5
+num_classes = 4
 time_window = 28
 
 batch_size = 64
 lr = 0.001
 n_epochs = 50
-network_type = '2LCNN'
+network_type = 'T2L3DCNN'
 train_all_data = False
 
 class CNNSequence(nn.Module):
@@ -145,11 +145,18 @@ def get_output(data_ds, model):
 
 if __name__ == '__main__':
     # NPZ Raw Data Loading
+    # str2int map
+    if num_classes == 5:
+        str2int = {'NC': 0, 'ST': 1, 'DT': 2, 'P': 3, 'G': 4}
+    elif num_classes == 4:
+        str2int = {'NC': 0, 'ST': 1, 'P': 2, 'G': 3}
+    else:   
+        print("Wrong Class Number in str2int Mapping")
+
     if network_type in ['2LCNN', '2L3DCNN']: # Used for STFT Image
-        loaded_data = np.load('DATA/STFT_images/stft_matrices.npz', allow_pickle=True)    
+        loaded_data = np.load('DATA/STFT_images/stft_matrices_123.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['stft_matrices'])
         labels_str = loaded_data['labels']
-        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
@@ -157,15 +164,13 @@ if __name__ == '__main__':
         loaded_data = np.load('DATA/CWT_images/cwt_matrices.npz', allow_pickle=True)    
         cwt_matrices = np.array(loaded_data['cwt_matrices'])
         labels_str = loaded_data['labels']
-        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(cwt_matrices, labels, test_size=0.2, random_state=2024)
     if network_type == 'T2L3DCNN': # Used for T Image
-        loaded_data = np.load('DATA/T_images/T_matrices.npz', allow_pickle=True)    
+        loaded_data = np.load('DATA/T_images/T_matrices_123.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['T_matrices'])
         labels_str = loaded_data['labels']
-        str2int = {"NC": 0, "ST": 1, "DT": 2, "P": 3, "G": 4}
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(stft_matrices, labels, test_size=0.2, random_state=2024)
@@ -234,7 +239,12 @@ if __name__ == '__main__':
         #plot confusion matrix using seabon
         confusionMatrixPlot = confusionMatrix.compute().numpy()
         plt.figure()
-        label_classes = ["NC", "ST", "DT", "P", "G"]
+        if num_classes == 5:
+            label_classes = ["NC", "ST", "DT", "P", "G"]
+        elif num_classes == 4:
+            label_classes = ["NC", "ST", "P", "G"]
+        else:   
+            print("Wrong Class Number in Confusion Matrix Mapping")
         sns.heatmap(confusionMatrixPlot,annot=True,fmt= 'd',cmap='Blues', xticklabels=label_classes, yticklabels=label_classes)
         plt.xlabel('Predicted Label')
         plt.ylabel('True Label')

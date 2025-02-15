@@ -17,7 +17,7 @@ import joblib
 import os
 
 # Load data
-data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/3_labeled_window_dataset.csv'
+data_path = '/home/weimindeqing/contactInterpretation/tactileGestureDetection/DATA/3_labeled_window_dataset_post123.csv'
 df = pd.read_csv(data_path)
 
  # Define columns corresponding to each joint
@@ -79,8 +79,8 @@ X_scaled = scaler.fit_transform(X)
 # Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.3, random_state=42)
 
-undersampler = RandomUnderSampler(random_state=42)
-X_resampled,y_resampled = undersampler.fit_resample(X_train,y_train) 
+# undersampler = RandomUnderSampler(random_state=42)
+# X_resampled,y_resampled = undersampler.fit_resample(X_train,y_train) 
 # print("Training set distribution:", Counter(y_resampled))
 
 # Proceed with your KNN model training
@@ -93,7 +93,7 @@ param_grid_knn = {
 # # Initialize GridSearchCV
 grid_search_knn = GridSearchCV(knn, param_grid_knn, cv=5, scoring='accuracy')
 # # Fit GridSearchCV
-grid_search_knn.fit(X_resampled, y_resampled)
+grid_search_knn.fit(X_train, y_train)
 # print(f"Best parameters for knn: {grid_search_knn.best_params_}"
 # Get the best parameters
 best_knn = grid_search_knn.best_estimator_
@@ -105,7 +105,7 @@ param_grid_svc = {
     'kernel':['rbf','linear']
 }
 grid_search_svm = GridSearchCV(svm,param_grid_svc,cv=5,scoring='accuracy')
-grid_search_svm.fit(X_resampled,y_resampled)
+grid_search_svm.fit(X_train,y_train)
 # print(f"Best parameters for svm: {grid_search_svm.best_params_}")
 best_svm = grid_search_svm.best_estimator_
 
@@ -119,7 +119,7 @@ param_grid_rf = {
     'bootstrap': [True, False]
 }
 grid_search_rf = GridSearchCV(estimator=rf, param_grid=param_grid_rf, cv=5, scoring='accuracy', n_jobs=-1)
-grid_search_rf.fit(X_resampled, y_resampled)
+grid_search_rf.fit(X_train, y_train)
 # print(f"Best parameters rf: {grid_search_rf.best_params_}")
 best_rf = grid_search_rf.best_estimator_
 
@@ -127,11 +127,11 @@ best_rf = grid_search_rf.best_estimator_
 
 rf_svm_grid_search = VotingClassifier(estimators=[('svm',best_svm),('rf',best_rf),('knn',best_knn)],voting = 'hard')
 
-rf_svm_grid_search.fit(X_resampled,y_resampled)
+rf_svm_grid_search.fit(X_train,y_train)
 
 # Save the trained KNN model for later use
 folder_path = 'AIModels/TrainedModels/'
 os.makedirs(folder_path, exist_ok=True)
-model_path = folder_path + 'KNN_SVM__RF_flatten_undersampling_hybried.pkl'
+model_path = folder_path + 'KNN_SVM__RF_flatten_hybried_post123.pkl'
 joblib.dump(best_knn, model_path)
 print(f'Model saved to {model_path}')
