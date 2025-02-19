@@ -82,13 +82,16 @@ features_num = 4
 classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
-method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels", "T2L3DCNN_02_13_2025_14-37-11Post1Epoch50.pth") # relative path from AIModels
-type_network = 'T2L3DCNN'
+method = 'TCNN'
+model_path_relative = os.path.join("AIModels/TrainedModels/FIxedEpochFinalModels4Classes", "1L3DTCNN_02_14_2025_12-53-41Post123Epoch50.pth") # relative path from AIModels
+type_network = '1L3DTCNN'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
     user_folder_path = os.path.join(main_path, "user_data/DS/gesture_pickle")
+# Majority Vote or not?
+MajorityVote = True
+
 
 
 # Z-score Normalization Function for RNN
@@ -206,9 +209,13 @@ elif method == 'TCNN':
     print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'Freq':
     window = np.zeros([window_length, features_num * dof])
-    stft_matrix = np.zeros([9, 29, features_num * dof])
-    stft_matrix2 = np.zeros([9, 29, features_num * dof])
-    stft_matrix3 = np.zeros([9, 29, features_num * dof])
+    if MajorityVote:
+        stft_matrix = np.zeros([9, 29, features_num * dof])
+        stft_matrix2 = np.zeros([9, 29, features_num * dof])
+        stft_matrix3 = np.zeros([9, 29, features_num * dof])
+        output1_idx = 0
+        output2_idx = 0
+        output3_idx = 0
     print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 
 
@@ -220,7 +227,10 @@ model_msg = Floats()
 
 # Callback function for contact detection and gesture prediction
 def contact_detection(data):
-    global window, window2, window3, stft_matrix, stft_matrix2, stft_matrix3, results, big_time_digits
+    global window, window2, window3, results, big_time_digits
+    if MajorityVote:
+        # global stft_matrix, stft_matrix2, stft_matrix3
+        global output1_idx, output2_idx, output3_idx
 
     start_time = rospy.get_time()
 
@@ -430,31 +440,40 @@ def contact_detection(data):
         # Predict the touch_type using the CNN Model with F-Image
         with torch.no_grad():
             # Change the multiple 2D data_matrix in list into stacked 3D stft_matrix
-            stft_matrix3 = stft_matrix2
-            stft_matrix2 = stft_matrix
+            # if MajorityVote:
+            #     stft_matrix3 = stft_matrix2
+            #     stft_matrix2 = stft_matrix
             stft_matrix = np.stack(data_matrix, axis=-1)
             # print(stft_matrix.shape)
             # print(torch.unsqueeze(transform(stft_matrix),0).shape)
             # Prepare inputs
             # transform 3rd dimension as channel dimension [(F,T,C) to (C,F,T)]
             stft_matrix_input = transform(stft_matrix).unsqueeze(0).to(device).float()
-            stft_matrix_input2 = transform(stft_matrix2).unsqueeze(0).to(device).float()
-            stft_matrix_input3 = transform(stft_matrix3).unsqueeze(0).to(device).float()
+            # if MajorityVote:
+            #     stft_matrix_input2 = transform(stft_matrix2).unsqueeze(0).to(device).float()
+            #     stft_matrix_input3 = transform(stft_matrix3).unsqueeze(0).to(device).float()
             
             # print(stft_matrix_input.shape)
             # Calculate model outputs
             model_out1 = model(stft_matrix_input).detach()
-            model_out2 = model(stft_matrix_input2).detach()
-            model_out3 = model(stft_matrix_input3).detach()
+            # if MajorityVote:
+            #     model_out2 = model(stft_matrix_input2).detach()
+            #     model_out3 = model(stft_matrix_input3).detach()
             # print(model_out)
             # Get predictions
             output1_idx = int(torch.argmax(model_out1).cpu())
-            output2_idx = int(torch.argmax(model_out2).cpu())
-            output3_idx = int(torch.argmax(model_out3).cpu())
+            # if MajorityVote:
+            #     output2_idx = int(torch.argmax(model_out2).cpu())
+            #     output3_idx = int(torch.argmax(model_out3).cpu())
             # Collect outputs
-            outputs_idx = [output1_idx, output2_idx, output3_idx]
-            # Perform majority voting
-            touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
+            if MajorityVote:
+                output3_idx = output2_idx
+                output2_idx = output1_idx
+                outputs_idx = [output1_idx, output2_idx, output3_idx]
+                # Perform majority voting
+                touch_type_idx = Counter(outputs_idx).most_common(1)[0][0]
+            else:
+                touch_type_idx = output1_idx
             # print(output)
         # Project the int index to string output
         if classes_num == 5:

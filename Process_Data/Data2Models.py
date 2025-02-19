@@ -152,7 +152,7 @@ class create_tensor_dataset_without_torque(Dataset):
         self.data_input.columns = range(self.num_features_dataset * self.data_seq)
         self.data_input = self.data_input.loc[:][joint_data_pos]
 
-class create_tensor_dataset(Dataset):cc
+class create_tensor_dataset(Dataset):
     
     def __init__(self, path='../contactInterpretation-main/dataset/realData/3_labeled_window_dataset_post123.csv', num_classes=4, num_features=4):
         self.path = path
