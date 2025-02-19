@@ -83,7 +83,7 @@ classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
 method = 'TCNN'
-model_path_relative = os.path.join("AIModels/TrainedModels/FIxedEpochFinalModels4Classes", "1L3DTCNN_02_14_2025_12-53-41Post123Epoch50.pth") # relative path from AIModels
+model_path_relative = os.path.join("AIModels/TrainedModels", "1L3DTCNN_02_19_2025_11-30-14Pose123ES36.pth") # relative path from AIModels
 type_network = '1L3DTCNN'
 # MultiClassifier Parameters and path
 MultiClassifier = False
