@@ -82,9 +82,9 @@ features_num = 4
 classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
-method = 'TCNN'
-model_path_relative = os.path.join("AIModels/TrainedModels/FIxedEpochFinalModels4Classes", "1L3DTCNN_02_14_2025_12-53-41Post123Epoch50.pth") # relative path from AIModels
-type_network = '1L3DTCNN'
+method = 'RNN'
+model_path_relative = os.path.join("AIModels/TrainedModels", "LSTM_02_18_2025_18-05-54Pose123ES57.pth") # relative path from AIModels
+type_network = 'LSTM'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
