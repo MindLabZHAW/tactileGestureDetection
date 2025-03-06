@@ -25,8 +25,10 @@ time_window = 28
 batch_size = 64
 lr = 0.001
 n_epochs = 50
-network_type = 'T2L3DCNN'
+network_type = 'STFT3DCNN'
 train_all_data = False
+
+STFT_Bound = False
 
 class CNNSequence(nn.Module):
     def __init__(self,network_type, num_classes):
@@ -100,12 +102,21 @@ class CNNSequence3D(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         
+        elif network_type in ['STFT3DCNN', 'STT3DCNN']:
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16,
+                                    kernel_size=(4, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
+                                    kernel_size=(7, 3, 3), stride=1, padding=0)
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+            self.flatten = nn.Flatten()
+            self.fc = nn.Linear(32, num_classes)
+
         self.network_type = network_type
         self.num_classes = num_classes
 
     def forward(self, input):
 
-        if self.network_type in ['2L3DCNN', 'T2L3DCNN']:
+        if self.network_type in ['2L3DCNN', 'T2L3DCNN', 'STFT3DCNN', 'STT3DCNN']:
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             # print("After conv1:", x.shape)  # 检查形状
@@ -153,8 +164,11 @@ if __name__ == '__main__':
     else:   
         print("Wrong Class Number in str2int Mapping")
 
-    if network_type in ['2LCNN', '2L3DCNN']: # Used for STFT Image
-        loaded_data = np.load('DATA/STFT_images/stft_matrices_123.npz', allow_pickle=True)    
+    if network_type in ['2LCNN', '2L3DCNN', 'STFT3DCNN']: # Used for STFT Image
+        if STFT_Bound == True: # Size 9x29
+            loaded_data = np.load('DATA/STFT_images/stft_matrices_1.npz', allow_pickle=True)
+        else: # Size 9x13
+            loaded_data = np.load('DATA/STFT_images/stft_matrices_1_BoundNone.npz', allow_pickle=True)
         stft_matrices = np.array(loaded_data['stft_matrices'])
         labels_str = loaded_data['labels']
         labels = [str2int[string] for string in labels_str]
@@ -167,8 +181,8 @@ if __name__ == '__main__':
         labels = [str2int[string] for string in labels_str]
         window_ids = loaded_data['window_ids']
         train_matrices, test_matrices, train_labels, test_labels = train_test_split(cwt_matrices, labels, test_size=0.2, random_state=2024)
-    if network_type == 'T2L3DCNN': # Used for T Image
-        loaded_data = np.load('DATA/T_images/T_matrices_123.npz', allow_pickle=True)    
+    if network_type in ['T2L3DCNN', 'STT3DCNN']: # Used for T(STT) Image
+        loaded_data = np.load('DATA/T_images/T_matrices_1.npz', allow_pickle=True)    
         stft_matrices = np.array(loaded_data['T_matrices'])
         labels_str = loaded_data['labels']
         labels = [str2int[string] for string in labels_str]
@@ -195,7 +209,7 @@ if __name__ == '__main__':
     # Build the model
     if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type=network_type, num_classes=num_classes)
-    elif network_type in ['2L3DCNN', 'T2L3DCNN']:
+    else: # '2L3DCNN', 'T2L3DCNN', 'STFT3DCNN', 'STT3DCNN'
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
     # Use Adam optimizer and CrossEntropyLoss
     optimizer = optim.Adam(model.parameters(), lr=lr)

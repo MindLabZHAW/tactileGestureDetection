@@ -25,8 +25,10 @@ time_window = 28
 
 batch_size = 64
 lr = 0.001
-max_epochs = 100  # 最大训练轮数，Early Stopping 可能会提早终止
-network_type = 'T2L3DCNN'
+max_epochs = 150  # 最大训练轮数，Early Stopping 可能会提早终止
+network_type = 'STFT3DCNN'
+
+STFT_Bound = False
 
 # ==================================================
 # 1) 定义 EarlyStopping 类
@@ -112,12 +114,21 @@ class CNNSequence3D(nn.Module):
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
             self.flatten = nn.Flatten()
             self.fc = nn.Linear(32, num_classes)
+
+        elif network_type in ['STFT3DCNN', 'STT3DCNN']:
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16,
+                                    kernel_size=(4, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
+                                    kernel_size=(7, 3, 3), stride=1, padding=0)
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+            self.flatten = nn.Flatten()
+            self.fc = nn.Linear(32, num_classes)
         
         self.network_type = network_type
         self.num_classes = num_classes
 
     def forward(self, input):
-        if self.network_type in ['2L3DCNN', 'T2L3DCNN']:
+        if self.network_type in ['2L3DCNN', 'T2L3DCNN', 'STFT3DCNN', 'STT3DCNN']:
             x = input.unsqueeze(1)
             x = nn.functional.relu(self.conv1(x))
             x = nn.functional.relu(self.conv2(x))
@@ -161,8 +172,11 @@ if __name__ == '__main__':
     # 4.1) 加载原始数据 & 初步 train/test 划分
     # -----------------------------
     str2int_4 = {'NC': 0, 'ST': 1, 'P': 2, 'G': 3}
-    if network_type in ['2LCNN', '2L3DCNN']:
-        loaded_data = np.load('DATA/STFT_images/stft_matrices_123.npz', allow_pickle=True)
+    if network_type in ['2LCNN', '2L3DCNN', 'STFT3DCNN']:
+        if STFT_Bound == True: # Size 9x29
+            loaded_data = np.load('DATA/STFT_images/stft_matrices_123.npz', allow_pickle=True)
+        else: # Size 9x13
+            loaded_data = np.load('DATA/STFT_images/stft_matrices_123_BoundNone.npz', allow_pickle=True)
         all_matrices = loaded_data['stft_matrices']
         labels_str   = loaded_data['labels']
         labels       = [str2int_4[s] for s in labels_str]
@@ -171,7 +185,7 @@ if __name__ == '__main__':
         all_matrices = loaded_data['cwt_matrices']
         labels_str   = loaded_data['labels']
         labels       = [str2int_4[s] for s in labels_str]
-    elif network_type == 'T2L3DCNN':
+    elif network_type in ['T2L3DCNN', 'STT3DCNN']:
         loaded_data  = np.load('DATA/T_images/T_matrices_123.npz', allow_pickle=True)
         all_matrices = loaded_data['T_matrices']
         labels_str   = loaded_data['labels']
@@ -213,7 +227,7 @@ if __name__ == '__main__':
     # -----------------------------
     if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type=network_type, num_classes=num_classes)
-    else:  # '2L3DCNN', 'T2L3DCNN'
+    else:  # '2L3DCNN', 'T2L3DCNN', 'STFT3DCNN', 'STT3DCNN'
         model = CNNSequence3D(network_type=network_type, num_classes=num_classes)
 
     model = model.to(device)

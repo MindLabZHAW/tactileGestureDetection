@@ -52,7 +52,7 @@ class Time3DCNNSequence(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         elif network_type =='2L3DTCNN':     
-            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(3, 3, 3), stride=1, padding=0)
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(5, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(5, 1, 1), stride=1, padding=0) 
             
             # 定义 3D 池化层

@@ -110,6 +110,15 @@ class CNNSequence3D(nn.Module):
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
+
+        elif network_type in ['STFT3DCNN', 'STT3DCNN']:
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16,
+                                   kernel_size=(4, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
+                                   kernel_size=(7, 3, 3), stride=1, padding=0)
+            self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
+            self.flatten = nn.Flatten()
+            self.fc = nn.Linear(32, num_classes)
         
         self.network_type = network_type
         self.num_classes = num_classes
@@ -141,7 +150,7 @@ class Time3DCNNSequence(nn.Module):
             self.flatten = nn.Flatten() # with batch so flatten from dimension 1 not 0
             self.fc = nn.Linear(32, num_classes)
         elif network_type =='2L3DTCNN':     
-            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(3, 3, 3), stride=1, padding=0)
+            self.conv1 = nn.Conv3d(in_channels=1, out_channels=16, kernel_size=(5, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32, kernel_size=(5, 1, 1), stride=1, padding=0) 
             
             # Define 3D Pooling layer
@@ -194,7 +203,7 @@ def import_cnn_models(PATH:str, network_type:str, num_classes:int):
     
     if network_type in ['2LCNN', '3LCNN']:
         model = CNNSequence(network_type = network_type, num_classes = num_classes)
-    elif network_type in ['2L3DCNN', 'T2L3DCNN']:
+    elif network_type in ['2L3DCNN', 'T2L3DCNN', 'STFT3DCNN', 'STT3DCNN']:
         model = CNNSequence3D(network_type = network_type, num_classes = num_classes)
     checkpoint = torch.load(PATH)
     model.load_state_dict(checkpoint["model_state_dict"])

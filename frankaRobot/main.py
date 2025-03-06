@@ -82,9 +82,9 @@ features_num = 4
 classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
-method = 'RNN'
-model_path_relative = os.path.join("AIModels/TrainedModels", "LSTM_02_18_2025_18-05-54Pose123ES57.pth") # relative path from AIModels
-type_network = 'LSTM'
+method = 'Freq'
+model_path_relative = os.path.join("AIModels/TrainedModels", "STFT3DCNN_03_05_2025_17-17-15Pose123ES60Conv4+7_STFTBound.pth") # relative path from AIModels
+type_network = 'STFT3DCNN'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
@@ -163,7 +163,7 @@ elif method == 'TCNN':
 elif method == 'Freq':
     # Load Freqency Model
     '''
-    Possible network_type: 2LCNN, 3LCNN, 2L3DCNN, T2L3DCNN
+    Possible network_type: 2LCNN, 3LCNN, 2L3DCNN, T2L3DCNN, STFT3DCNN, STT3DCNN
     Use 2D or 3D(Features as channel axis) Image with 2D/3D CNN 
     T2L3DCNN is a fake Spectrogram with no frequency transform but raw time domain data in each channel(feature) 
     '''
@@ -374,7 +374,7 @@ def contact_detection(data):
         window = np.append(window[1:, :], new_row, axis=0)
        
         # 2 Layers 2D/3D CNN - STFT
-        if model.network_type in ['2LCNN', '2L3DCNN']:
+        if model.network_type in ['2LCNN', '2L3DCNN', 'STFT3DCNN']:
             # Hyperparameters for STFT
             fs = 200 # sample frequency
             nperseg = 16 # STFT window size
@@ -392,7 +392,8 @@ def contact_detection(data):
                     signal = (signal - signal_mean) / (signal_std + 1e-5)
                 # Conduct Short-time Fourier Transform
                 # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
-                f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming', boundary=None)
                 # Stack signals in 3rd dimension
                 data_matrix.append(np.abs(Zxx))
         # 3 Layers 2D CNN - CWT
@@ -412,7 +413,7 @@ def contact_detection(data):
                 # Stack signals in 3rd dimension
                 data_matrix.append(np.abs(coefficients))
         # 2 Layer 3D CNN - Fake STFT Image on Time Domain
-        elif model.network_type == 'T2L3DCNN':
+        elif model.network_type in ['T2L3DCNN', 'STT3DCNN']:
             # Hyperparameters
             T_window_size = 16 # window size
             T_step = 1  # not used because iteration automatically +1,but if step is not 1 we need to fix this

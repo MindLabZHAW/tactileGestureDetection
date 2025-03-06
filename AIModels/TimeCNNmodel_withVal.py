@@ -31,7 +31,7 @@ batch_size = 64
 lr = 0.001
 max_epochs = 100  # 最大训练 Epoch，EarlyStopping 可提前停止
 
-network_type = '1L3DTCNN'
+network_type = '2L3DTCNN'
 normalization = False  # 如果需要归一化可手动设置
 
 # ==================================================
@@ -65,16 +65,16 @@ class Time3DCNNSequence(nn.Module):
     def __init__(self, network_type, num_classes=5, num_features=4, time_window=28):
         super(Time3DCNNSequence, self).__init__()
 
-        if network_type == '1L3DTCNN':
+        if network_type == '1L3DTCNN': # RT2DCNN
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=32,
                                    kernel_size=(28, 3, 3), stride=1, padding=0)
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
             self.flatten = nn.Flatten()
             self.fc = nn.Linear(32, num_classes)
 
-        elif network_type == '2L3DTCNN':
+        elif network_type == '2L3DTCNN': # RT3DCNN
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16,
-                                   kernel_size=(3, 3, 3), stride=1, padding=0)
+                                   kernel_size=(5, 3, 3), stride=1, padding=0)
             self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
                                    kernel_size=(5, 1, 1), stride=1, padding=0)
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
