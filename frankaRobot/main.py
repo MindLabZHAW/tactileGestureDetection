@@ -83,8 +83,8 @@ classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
 method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels", "STFT3DCNN_03_05_2025_17-17-15Pose123ES60Conv4+7_STFTBound.pth") # relative path from AIModels
-type_network = 'STFT3DCNN'
+model_path_relative = os.path.join("AIModels/TrainedModels/FIxedEpochFinalModels4Classes", "T2L3DCNN_02_13_2025_14-37-11Post1Epoch50.pth") # relative path from AIModels
+type_network = 'T2L3DCNN'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
@@ -212,7 +212,7 @@ elif method == 'Freq':
     if MajorityVote:
         stft_matrix = np.zeros([9, 29, features_num * dof])
         stft_matrix2 = np.zeros([9, 29, features_num * dof])
-        stft_matrix3 = np.zeros([9, 29, features_num * dof])
+        stft_matrix3 = np.zeros([9, 29, features_num * dof])  # here the size is not correct but immidiatly replaced when the first window computed
         output1_idx = 0
         output2_idx = 0
         output3_idx = 0
@@ -392,8 +392,8 @@ def contact_detection(data):
                     signal = (signal - signal_mean) / (signal_std + 1e-5)
                 # Conduct Short-time Fourier Transform
                 # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window=sg.windows.general_gaussian(64, p=1, sig=7))
-                # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
-                f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming', boundary=None)
+                f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming')
+                # f, t, Zxx = stft(signal, fs, nperseg=nperseg, noverlap=noverlap, window='hamming', boundary=None)
                 # Stack signals in 3rd dimension
                 data_matrix.append(np.abs(Zxx))
         # 3 Layers 2D CNN - CWT

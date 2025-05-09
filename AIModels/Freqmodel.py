@@ -104,9 +104,9 @@ class CNNSequence3D(nn.Module):
         
         elif network_type in ['STFT3DCNN', 'STT3DCNN']:
             self.conv1 = nn.Conv3d(in_channels=1, out_channels=16,
-                                    kernel_size=(4, 3, 3), stride=1, padding=0)
-            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
                                     kernel_size=(7, 3, 3), stride=1, padding=0)
+            self.conv2 = nn.Conv3d(in_channels=16, out_channels=32,
+                                    kernel_size=(1, 3, 3), stride=1, padding=0)
             self.global_max_pool = nn.AdaptiveMaxPool3d((1, 1, 1))
             self.flatten = nn.Flatten()
             self.fc = nn.Linear(32, num_classes)
