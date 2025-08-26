@@ -3,3 +3,13 @@
 /AIModels/TrainedModels
 /dataset
 /user_data
+/ProcessData/rawData2LabeledData_backup.ipynb
+
+# /DATA/*
+# !DATA/Pose1RawData
+# !DATA/Pose1RawDataPart2
+# !DATA/Pose2RawData
+# !DATA/Pose3RawData
+# !DATA/rawData
+# !DATA/STFT_images
+# !DATA/T_images

@@ -69,7 +69,7 @@ print(f"main_path is {main_path}")
 
 # Import our own script
 # ImportModel Used to import different models' structure
-from ImportModel import import_rnn_models, import_cnn_models, import_tcnn_models
+from ImportModel import import_rnn_models, import_rnn_models_FeatureByTime, import_cnn_models, import_tcnn_models
 # Import Multiple Classifiers form "/AIModels/MultiClassifier"
 import sys
 sys.path.append(os.path.join(main_path,"AIModels","MultiClassifier"))
@@ -82,15 +82,17 @@ features_num = 4
 classes_num = 4
 Normalization = False
 # Model Selection Parameters and path (Please always change them together)
-method = 'Freq'
-model_path_relative = os.path.join("AIModels/TrainedModels/FIxedEpochFinalModels4Classes", "T2L3DCNN_02_13_2025_14-37-11Post1Epoch50.pth") # relative path from AIModels
-type_network = 'T2L3DCNN'
+method = 'RNN'
+model_path_relative = os.path.join("AIModels/TrainedModels/", "NCPCfCFBT_05_13_2025_08-58-51Pose1ES85.pth") # relative path from AIModels
+type_network = 'NCPCfC'
 # MultiClassifier Parameters and path
 MultiClassifier = False
 if MultiClassifier:
     user_folder_path = os.path.join(main_path, "user_data/DS/gesture_pickle")
 # Majority Vote or not?
 MajorityVote = True
+#Use FeatureByTime Input?
+FeatureByTime = True
 
 
 
@@ -129,8 +131,12 @@ elif method == 'RNN':
         LTC for Liquid Time-Constant Neuron, CfC for Closed-Form Continuous-Time Neuron 
     '''
     model_path = os.path.join(main_path, model_path_relative)
-    model = import_rnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
-    print(f'{method}-{model.network_type} model is loaded')
+    if FeatureByTime:
+        model = import_rnn_models_FeatureByTime(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
+        print(f'{method}-{model.network_type}FeatureByTime model is loaded')
+    else:
+        model = import_rnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
+        print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -148,7 +154,7 @@ elif method == 'TCNN':
     Use 3D Image (Time as channel axis) combining with 3D CNN
     '''
     model_path = os.path.join(main_path, model_path_relative)
-    model = import_tcnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
+    modelcc = import_tcnn_models(model_path, network_type=type_network, num_classes=classes_num, num_features=features_num, time_window=window_length)
     print(f'{method}-{model.network_type} model is loaded')
 
     # Set device for PyTorch models
@@ -198,10 +204,16 @@ if method == 'KNN':
     window = np.zeros([1, window_length * features_num * dof])
     print(f'{method}-{type_network}\'s window size is {window.shape}')
 elif method == 'RNN':
-    window = np.zeros([dof, features_num * window_length])
-    window2 = np.zeros([dof, features_num * window_length])
-    window3 = np.zeros([dof, features_num * window_length])
-    print(f'{method}-{model.network_type}\'s window size is {window.shape}')
+    if FeatureByTime:
+        window = np.zeros([dof * features_num, window_length])
+        window2 = np.zeros([dof * features_num, window_length])
+        window3 = np.zeros([dof * features_num, window_length])
+        print(f'{method}-{model.network_type}\'s window size is {window.shape}')
+    else:
+        window = np.zeros([dof, features_num * window_length])
+        window2 = np.zeros([dof, features_num * window_length])
+        window3 = np.zeros([dof, features_num * window_length])
+        print(f'{method}-{model.network_type}\'s window size is {window.shape}')
 elif method == 'TCNN':
     window = np.zeros([window_length, dof, features_num])
     window2 = np.zeros([window_length, dof, features_num])
@@ -262,17 +274,27 @@ def contact_detection(data):
     
     # RNN Procedure
     elif method == 'RNN':
-        # Reshape the new comming data
-        new_block = np.column_stack((e,de,tau_J,tau_ext))
-        # print(f"new block is {new_block}")
-        # print(f"front block is {window[:, features_num:].shape}")
-        # Update window3(t-2) and window2(t-1) and window(t) in sequence
-        window3 = window2
-        window2 = window
-        window = np.append(window[:, features_num:], new_block, axis=1)
-        # Normalization
-        if Normalization:
-            window = z_score_normalization(window)
+        if FeatureByTime:
+            # Reshape the new comming data
+            new_block = np.column_stack((e,de,tau_J,tau_ext)).flatten()
+            # print(f"new block is {new_block}")
+            # print(f"front block is {window[:, features_num:].shape}")
+            # Update window3(t-2) and window2(t-1) and window(t) in sequence
+            window3 = window2
+            window2 = window
+            window = np.append(window[:, 1:], new_block, axis=1)
+        else:
+            # Reshape the new comming data
+            new_block = np.column_stack((e,de,tau_J,tau_ext))
+            # print(f"new block is {new_block}")
+            # print(f"front block is {window[:, features_num:].shape}")
+            # Update window3(t-2) and window2(t-1) and window(t) in sequence
+            window3 = window2
+            window2 = window
+            window = np.append(window[:, features_num:], new_block, axis=1)
+            # Normalization
+            if Normalization:
+                window = z_score_normalization(window)
         # Use the network to predict in all 3 windows
         with torch.no_grad():
             # Prepare inputs
