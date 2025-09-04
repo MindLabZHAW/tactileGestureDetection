@@ -47,7 +47,28 @@ For the environment setup please follow the [Contact Interpretation System](http
 
 ## Dataset
 
+The dataset we collected is stored in the folder [`DATA/`](./DATA), following the structure described above. It was collected by applying four types of gestures (**Single Tap (ST)**, **Push (P)**, **Grab (G)**, and an additional **Double Tap (DT)** for extended research) in five directions (left, right, front, back, up) on the robot hand (joint 6 + link 7 + end effector).
+
+- **Single Tap** (ST): A brief, impulse-like touch applied to the robot surface
+without sustained pressure, such as pat, poke, or slap;
+- **Push** (P): A sustained force applied to the robot with a clear direction,
+such as push, pull, or lift;
+- **Grab** (G): A prolonged contact in which the hand encloses a link of the robot and applies stable pressure from multiple directions, such as pinch or squeeze;
+- **Double Tap** (DT): Two brief, impulse-like touches (2 STs) applied **consecutively** to the robot surface without sustained pressure.
+
+The sampling frequency was set to 200 Hz. For each gesture–direction pair, we collected two repetitions per round using a digital glove. Since gesture durations varied, to normalized and balanced the data lengths across different gesture classes, in total we collected: 
+
+| Pose   | Single Tap (ST) | Push (P) | Grab (G) | Double Tap (DT)|
+|--------|-----------------|----------|----------|----------------|
+| Pose 1 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
+| Pose 2 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
+| Pose 3 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
+
+Additional redundant rounds were collected for Pose 1 to support further research and validation.
+
+
 ## Models
+
 
 ## Results
 
