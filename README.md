@@ -67,10 +67,38 @@ The sampling frequency was set to 200 Hz. For each gesture–direction pair, we 
 Additional redundant rounds were collected for Pose 1 to support further research and validation.
 
 
-## Models
+## Inputs & Models
 
+In our work, three types of inputs (**Raw-Time(RT)** Stack, **Short-Time Fourier Transform(STFT)** Spectrogram, **Short-Time Transform(STT)** Pseudo-Spectrogram) are constructed, as illustrated below:
+
+![Inputs](/image/Input_BoundNone.png)
+
+> Parameter settings: Joint Number = 7, Feature Number = 4, Detect Window Size = 28, Sliding Window Size = 16
+
+Based on those inputs we evaluate the performances of the following network structures(including but not limited to those in this repository):
+
+| Model Name | Input         | Layer Num. | Key Hyperparameters                                                                 |
+|------------|---------------|------------|--------------------------------------------------------------------------------------|
+| STFT2DCNN  | 3D STFT Image | 5          | 3DConv1 (28×3×3) → 3DConv2 (1×3×3) → 3D Pool (1×1×1) → Flatten → FC                 |
+| STFT3DCNN  | 3D STFT Image | 5          | 3DConv1 (7×3×3) → 3DConv2 (1×3×3) → 3D Pool (1×1×1) → Flatten → FC                   |
+| STT2DCNN   | 3D STT Image  | 5          | 3DConv1 (28×3×3) → 3DConv2 (1×3×3) → 3D Pool (1×1×1) → Flatten → FC                  |
+| STT3DCNN   | 3D STT Image  | 5          | 3DConv1 (4×3×3) → 3DConv2 (7×3×3) → 3D Pool (1×1×1) → Flatten → FC                   |
+| RT2DCNN    | 3D RT Image   | 4          | 3DConv (28×3×3) → 3D Pool (1×1×1) → Flatten → FC                                     |
+| RT3DCNN    | 3D RT Image   | 5          | 3DConv1 (5×3×3) → 3DConv2 (5×3×3) → 3D Pool (1×1×1) → Flatten → FC                   |
+
+> For Convolution Layer we only mentioned kernel size as padding are all 0 and stride are all 1
 
 ## Results
+
+The real-time deployment results of the proposed models are summarized below, covering two experiments(also illustrated in the header image) :  
+1. Training on Pose 1, testing on Pose 1  
+2. Training on Poses 1–3, testing on Pose 4 
+
+![ResultTable](/image/ResultTable.png)
+
+> RD = 0 doesn’t mean there is no recovery delay, but as the delay exceeds our threshold(150 ms), they will all be marked as FP
+
+For the evaluation metrics and further analysis, please refer to our paper.
 
 ## Citation
 
