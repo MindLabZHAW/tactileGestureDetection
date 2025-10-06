@@ -7,7 +7,7 @@ This folder contains scripts used for tactile gesture dataset processing: labeli
 
 - [Labeling and block extraction](#labeling-and-block-extraction)
 - [Cleaning](#cleaning)
-- [Windowing generation](#windowing generation)
+- [Windowing generation](#windowing-generation)
 - [Visualization](#visualization)
 - [Model alignment and performance evaluation](#model-alignment-and-performance-evaluation)
 - [Utilities](#utilities)
