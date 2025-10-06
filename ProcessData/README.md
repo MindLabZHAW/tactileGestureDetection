@@ -1,4 +1,4 @@
-# ProcessData — Data processing notes and scripts
+# ProcessData
 
 This folder contains scripts used for tactile gesture dataset processing: labeling, cleaning, windowing, visualization and model evaluation.
 
