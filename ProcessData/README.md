@@ -6,9 +6,9 @@ This folder contains scripts used for tactile gesture dataset processing: labeli
 ## Table of Contents
 
 - [Labeling and block extraction](#labeling-and-block-extraction)
-- [Cleaning and correction](#cleaning-and-correction)
-- [Windowing and dataset generation](#windowing-and-dataset-generation)
-- [Visualization and feature/image conversion](#visualization-and-featureimage-conversion)
+- [Cleaning](#cleaning)
+- [Windowing generation](#windowing generation)
+- [Visualization](#visualization)
 - [Model alignment and performance evaluation](#model-alignment-and-performance-evaluation)
 - [Utilities](#utilities)
 
@@ -21,19 +21,18 @@ This folder contains scripts used for tactile gesture dataset processing: labeli
 - `labeledDataToBlockData.ipynb`, `labeled_data_block_2.ipynb` : Alternative/extended implementations of block extraction and labeling logic.
 
 
-## Cleaning and correction
+## Cleaning
 
 - `DeleteAbandonData_3.ipynb` : Removes abandoned/unusable rows (e.g. `block_id == -1`) from labeled datasets.
 
 
-## Windowing and dataset generation
+## Windowing generation
 
 - `3_labeled_window_dataset.ipynb` : Convert block-level labeled data into overlapping windows (sliding windows). Produces windowed CSV datasets used by models.
-- `LabeledDataWithWindow.ipynb` : Analyze overlap/containment between windows and labeled data blocks; used to derive window labels (majority voting or overlap rules).
 - `6_csvTrainTestSplit.py` : Split windowed data into train and test sets by grouping on `window_id`/`block_id` to avoid leakage.
 
 
-## Visualization and feature/image conversion
+## Visualization
 
 - `5_labelAndVisualization.ipynb` : Visual analysis of labeled data (time traces, label overlays, summary plots).
 - `7_visualizeLabeld_data.ipynb` : Additional visualization helpers and examples.
@@ -49,9 +48,9 @@ This folder contains scripts used for tactile gesture dataset processing: labeli
 ## Utilities 
 
 - `Data2Models.py` : Convert CSV/windowed data into tensor/dataset objects consumable by PyTorch models (dataset classes and transforms).
-- `data_obs.py` : Robot data observation / collection script.
+- `data_obs.py` : Robot data collection script.
 - `saveData.py` : Continuous data recorder. Saves raw robot streams, labels and model outputs to files for later processing.
-- `old_data_obs.py` : Older/legacy data observation script.
+- `old_data_obs.py` : Older data observation script.
 
 
 
