@@ -51,7 +51,7 @@ without sustained pressure, such as pat, poke, or slap;
 such as push, pull, or lift;
 - **Grab** (G): A prolonged contact in which the hand encloses a link of the robot and applies stable pressure from multiple directions, such as pinch or squeeze;
 
-![GestureType](/image/GetureType.png)
+![GestureType](/image/GestureType.jpg)
 
 The sampling frequency was set to 200 Hz. For each gesture–direction pair, we collected two repetitions per round using a digital glove. Since gesture durations varied, to normalized and balanced the data lengths across different gesture classes, in total we collected: 
 
@@ -108,4 +108,8 @@ This work was conducted at MINDLab (ZHAW), supported by the Eurostars project
 
 ## 🎥 Presentation Video (ICAR 2025)
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/<KNv19u9G6CQ>" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315"
+src="https://www.youtube.com/embed/KNv19u9G6CQ"
+frameborder="0" allowfullscreen>
+</iframe>
+
