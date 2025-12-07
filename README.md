@@ -108,8 +108,5 @@ This work was conducted at MINDLab (ZHAW), supported by the Eurostars project
 
 ## 🎥 Presentation Video (ICAR 2025)
 
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/KNv19u9G6CQ"
-frameborder="0" allowfullscreen>
-</iframe>
+[![ICAR Presentation Video](https://img.youtube.com/vi/KNv19u9G6CQ/0.jpg)](https://www.youtube.com/watch?v=KNv19u9G6CQ)
 
