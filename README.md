@@ -25,11 +25,7 @@ This project explores deep learning methods, specifically CNN-based approaches, 
 │   └── TimeCNNmodel_withVal.py   # Training & saving script for RT image input CNNs
 ├── DATA/                         # Data Storage
 │   ├── Labeled_data/             # Folder used to store labeled data during preprocessing
-│   ├── rawData                   # Pose 1 raw data storage (ST 4 round + DT 2 round + P & G 1 round)
-│   ├── rawData                   # Pose 1 raw redundant data storage (DT & P & G another 1 round)
-│   ├── rawData                   # Pose 2 raw data storage (ST 4 round + DT 2 round + P & G 1 round)
-│   ├── rawData                   # Pose 3 raw data storage (ST 4 round + DT 2 round + P & G 1 round)
-│   ├── rawData                   # Folder used to place USING raw data, adjust when using
+│       └── [CollectiongDate]-[ContactLinkNum][GestureType]-[RobotPose][GestureDirection][Round]
 │   ├── STFT_images/              # Folder used to store STFT images after preprocessing 
 │   └── T_images/                 # Folder used to store STT images after preprocessing 
 ├── frankaRobot/                  # Real-time Implementation Scripts
@@ -47,24 +43,23 @@ For the environment setup please follow the [Contact Interpretation System](http
 
 ## Dataset
 
-The dataset we collected is stored in the folder [`DATA/`](./DATA), following the structure described above. It was collected by applying four types of gestures (**Single Tap (ST)**, **Push (P)**, **Grab (G)**, and an additional **Double Tap (DT)** for extended research) in five directions (left, right, front, back, up) on the robot hand (joint 6 + link 7 + end effector).
+The dataset we collected is stored in the folder [`DATA/`](./DATA), following the structure described above. It was collected by applying three types of gestures (**Single Tap (ST)**, **Push (P)**, and **Grab (G)** in five directions (left, right, front, back, up) on the robot hand (joint 6 + link 7 + end effector).
 
 - **Single Tap** (ST): A brief, impulse-like touch applied to the robot surface
 without sustained pressure, such as pat, poke, or slap;
 - **Push** (P): A sustained force applied to the robot with a clear direction,
 such as push, pull, or lift;
 - **Grab** (G): A prolonged contact in which the hand encloses a link of the robot and applies stable pressure from multiple directions, such as pinch or squeeze;
-- **Double Tap** (DT): Two brief, impulse-like touches (2 STs) applied **consecutively** to the robot surface without sustained pressure.
+
+![GestureType](/image/GetureType.png)
 
 The sampling frequency was set to 200 Hz. For each gesture–direction pair, we collected two repetitions per round using a digital glove. Since gesture durations varied, to normalized and balanced the data lengths across different gesture classes, in total we collected: 
 
-| Pose   | Single Tap (ST) | Push (P) | Grab (G) | Double Tap (DT)|
-|--------|-----------------|----------|----------|----------------|
-| Pose 1 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
-| Pose 2 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
-| Pose 3 | 4 rounds        | 1 round  | 1 round  | 2 rounds       |
-
-Additional redundant rounds were collected for Pose 1 to support further research and validation.
+| Pose   | Single Tap (ST) | Push (P) | Grab (G) |
+|--------|-----------------|----------|----------|
+| Pose 1 | 4 rounds        | 1 round  | 1 round  |
+| Pose 2 | 4 rounds        | 1 round  | 1 round  |
+| Pose 3 | 4 rounds        | 1 round  | 1 round  |
 
 
 ## Inputs & Models
@@ -75,7 +70,7 @@ In our work, three types of inputs (**Raw-Time(RT)** Stack, **Short-Time Fourier
 
 > Parameter settings: Joint Number = 7, Feature Number = 4, Detect Window Size = 28, Sliding Window Size = 16
 
-Based on those inputs we evaluate the performances of the following network structures(including but not limited to those in this repository):
+Based on those inputs, we evaluate the performances of the following network structures(including but not limited to those in this repository):
 
 | Model Name | Input         | Layer Num. | Key Hyperparameters                                                                 |
 |------------|---------------|------------|--------------------------------------------------------------------------------------|
@@ -86,7 +81,7 @@ Based on those inputs we evaluate the performances of the following network stru
 | RT2DCNN    | 3D RT Image   | 4          | 3DConv (28×3×3) → 3D Pool (1×1×1) → Flatten → FC                                     |
 | RT3DCNN    | 3D RT Image   | 5          | 3DConv1 (5×3×3) → 3DConv2 (5×3×3) → 3D Pool (1×1×1) → Flatten → FC                   |
 
-> For Convolution Layer we only mentioned kernel size as padding are all 0 and stride are all 1
+> For Convolution Layer, we only mentioned kernel size as paddings are all 0 and strides are all 1
 
 ## Results
 
@@ -110,3 +105,7 @@ Song, Deqing, et al. "Tactile Gesture Recognition with Built-in Joint Sensors fo
 
 This work was conducted at MINDLab (ZHAW), supported by the Eurostars project
 (Grant No. E!3087) titled SmartSenseAI.
+
+## 🎥 Presentation Video (ICAR 2025)
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/<KNv19u9G6CQ>" frameborder="0" allowfullscreen></iframe>
